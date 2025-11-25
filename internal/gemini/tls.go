@@ -85,47 +85,7 @@ func (s *Server) generateSelfSignedCert() error {
 		return fmt.Errorf("failed to create certificate: %w", err)
 	}
 
-	// Save certificate if cert file path is specified
-	if s.config.TLS.CertPath != "" {
-		certPath := s.config.TLS.CertPath
-		keyPath := s.config.TLS.KeyPath
-
-		// Ensure directory exists
-		if err := os.MkdirAll(filepath.Dir(certPath), 0755); err != nil {
-			return fmt.Errorf("failed to create cert directory: %w", err)
-		}
-
-		// Write certificate
-		certOut, err := os.Create(certPath)
-		if err != nil {
-			return fmt.Errorf("failed to create cert file: %w", err)
-		}
-		defer certOut.Close()
-
-		if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
-			return fmt.Errorf("failed to write certificate: %w", err)
-		}
-
-		// Write private key
-		keyOut, err := os.Create(keyPath)
-		if err != nil {
-			return fmt.Errorf("failed to create key file: %w", err)
-		}
-		defer keyOut.Close()
-
-		privBytes, err := x509.MarshalECPrivateKey(privateKey)
-		if err != nil {
-			return fmt.Errorf("failed to marshal private key: %w", err)
-		}
-
-		if err := pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: privBytes}); err != nil {
-			return fmt.Errorf("failed to write private key: %w", err)
-		}
-
-		fmt.Printf("Generated self-signed certificate: %s\n", certPath)
-	}
-
-	// Create TLS certificate from generated cert
+	// Build TLS config first so we can still start even if persisting fails
 	cert := tls.Certificate{
 		Certificate: [][]byte{derBytes},
 		PrivateKey:  privateKey,
@@ -142,5 +102,53 @@ func (s *Server) generateSelfSignedCert() error {
 		},
 	}
 
+	// Persist the cert if paths are provided and auto-generate is enabled; warn but continue on failure
+	if s.config.TLS.AutoGenerate && s.config.TLS.CertPath != "" && s.config.TLS.KeyPath != "" {
+		if err := s.persistSelfSignedCert(derBytes, privateKey); err != nil {
+			fmt.Printf("Warning: could not persist self-signed Gemini certificate to %s: %v (using in-memory cert only)\n", filepath.Dir(s.config.TLS.CertPath), err)
+		}
+	}
+
+	return nil
+}
+
+// persistSelfSignedCert writes the generated certificate and key to disk
+func (s *Server) persistSelfSignedCert(derBytes []byte, privateKey *ecdsa.PrivateKey) error {
+	certPath := s.config.TLS.CertPath
+	keyPath := s.config.TLS.KeyPath
+
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(certPath), 0755); err != nil {
+		return fmt.Errorf("failed to create cert directory: %w", err)
+	}
+
+	// Write certificate
+	certOut, err := os.Create(certPath)
+	if err != nil {
+		return fmt.Errorf("failed to create cert file: %w", err)
+	}
+	defer certOut.Close()
+
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
+		return fmt.Errorf("failed to write certificate: %w", err)
+	}
+
+	// Write private key
+	keyOut, err := os.Create(keyPath)
+	if err != nil {
+		return fmt.Errorf("failed to create key file: %w", err)
+	}
+	defer keyOut.Close()
+
+	privBytes, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return fmt.Errorf("failed to marshal private key: %w", err)
+	}
+
+	if err := pem.Encode(keyOut, &pem.Block{Type: "EC PRIVATE KEY", Bytes: privBytes}); err != nil {
+		return fmt.Errorf("failed to write private key: %w", err)
+	}
+
+	fmt.Printf("Generated self-signed certificate: %s\n", certPath)
 	return nil
 }

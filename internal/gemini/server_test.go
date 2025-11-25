@@ -6,6 +6,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -263,6 +265,37 @@ func TestRendererOutput(t *testing.T) {
 			t.Errorf("Empty note list should say 'No notes yet'")
 		}
 	})
+}
+
+func TestGenerateSelfSignedCertFallsBackOnPersistError(t *testing.T) {
+	// Create a path that cannot be used as a directory (parent is a file)
+	blocker, err := os.CreateTemp(t.TempDir(), "nophr-gemini-cert-block")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	blocker.Close()
+
+	certPath := filepath.Join(blocker.Name(), "cert.pem") // parent is a file, so persist should fail
+	keyPath := filepath.Join(blocker.Name(), "key.pem")
+
+	server := &Server{
+		config: &config.GeminiProtocol{
+			TLS: config.GeminiTLS{
+				CertPath:     certPath,
+				KeyPath:      keyPath,
+				AutoGenerate: true,
+			},
+		},
+		host: "localhost",
+	}
+
+	if err := server.generateSelfSignedCert(); err != nil {
+		t.Fatalf("generateSelfSignedCert should succeed even when persistence fails: %v", err)
+	}
+
+	if server.tlsConfig == nil || len(server.tlsConfig.Certificates) == 0 {
+		t.Fatalf("tlsConfig should be initialized even when certificate persistence fails")
+	}
 }
 
 // Helper function to send a Gemini request
