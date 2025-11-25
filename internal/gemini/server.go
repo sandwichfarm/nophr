@@ -49,7 +49,7 @@ func New(cfg *config.GeminiProtocol, fullCfg *config.Config, st *storage.Storage
 	}
 
 	// Initialize sections manager (opt-in for custom filtered views)
-	s.sectionManager = sections.NewManager(st)
+	s.sectionManager = sections.NewManager(st, fullCfg.Identity.Npub)
 
 	// Initialize TLS configuration
 	if err := s.initTLS(); err != nil {

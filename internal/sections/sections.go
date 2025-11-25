@@ -3,9 +3,11 @@ package sections
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/sandwich/nophr/internal/storage"
 )
 
@@ -34,24 +36,24 @@ type MoreLink struct {
 
 // FilterSet contains multiple filter criteria
 type FilterSet struct {
-	Kinds       []int
-	Authors     []string
-	Tags        map[string][]string
-	Since       *time.Time
-	Until       *time.Time
-	Search      string
-	Scope       Scope
+	Kinds   []int
+	Authors []string
+	Tags    map[string][]string
+	Since   *time.Time
+	Until   *time.Time
+	Search  string
+	Scope   Scope
 }
 
 // SortField defines how to sort events
 type SortField string
 
 const (
-	SortByCreatedAt  SortField = "created_at"
+	SortByCreatedAt   SortField = "created_at"
 	SortByPublishedAt SortField = "published_at"
-	SortByReactions  SortField = "reactions"
-	SortByZaps       SortField = "zaps"
-	SortByReplies    SortField = "replies"
+	SortByReactions   SortField = "reactions"
+	SortByZaps        SortField = "zaps"
+	SortByReplies     SortField = "replies"
 )
 
 // SortOrder defines sort direction
@@ -66,13 +68,13 @@ const (
 type GroupField string
 
 const (
-	GroupNone   GroupField = ""
-	GroupByDay  GroupField = "day"
-	GroupByWeek GroupField = "week"
-	GroupByMonth GroupField = "month"
-	GroupByYear GroupField = "year"
+	GroupNone     GroupField = ""
+	GroupByDay    GroupField = "day"
+	GroupByWeek   GroupField = "week"
+	GroupByMonth  GroupField = "month"
+	GroupByYear   GroupField = "year"
 	GroupByAuthor GroupField = "author"
-	GroupByKind GroupField = "kind"
+	GroupByKind   GroupField = "kind"
 )
 
 // Scope defines the author scope for filtering
@@ -99,15 +101,17 @@ type Page struct {
 
 // Manager manages sections and their content
 type Manager struct {
-	storage  *storage.Storage
-	sections map[string]*Section
+	storage     *storage.Storage
+	sections    map[string]*Section
+	ownerPubkey string // canonical hex pubkey for owner (default author scope)
 }
 
 // NewManager creates a new section manager
-func NewManager(st *storage.Storage) *Manager {
+func NewManager(st *storage.Storage, ownerPubkey string) *Manager {
 	return &Manager{
-		storage:  st,
-		sections: make(map[string]*Section),
+		storage:     st,
+		sections:    make(map[string]*Section),
+		ownerPubkey: normalizeAuthorValue(ownerPubkey, ""),
 	}
 }
 
@@ -233,8 +237,9 @@ func (m *Manager) buildFilter(section *Section, pageNum int) nostr.Filter {
 		filter.Kinds = section.Filters.Kinds
 	}
 
-	if len(section.Filters.Authors) > 0 {
-		filter.Authors = section.Filters.Authors
+	authors := m.resolveAuthors(section.Filters.Authors, section.Filters.Scope)
+	if len(authors) > 0 {
+		filter.Authors = authors
 	}
 
 	if section.Filters.Since != nil {
@@ -273,8 +278,8 @@ func (m *Manager) sortEvents(events []*nostr.Event, field SortField, order SortO
 				} else {
 					shouldSwap = events[j].CreatedAt > events[j+1].CreatedAt
 				}
-			// For other sort fields, would need aggregate data
-			// This is simplified for now
+				// For other sort fields, would need aggregate data
+				// This is simplified for now
 			}
 
 			if shouldSwap {
@@ -294,10 +299,10 @@ func DefaultSections() []*Section {
 			Filters: FilterSet{
 				Kinds: []int{1},
 			},
-			SortBy:    SortByCreatedAt,
-			SortOrder: SortDesc,
-			Limit:     20,
-			ShowDates: true,
+			SortBy:      SortByCreatedAt,
+			SortOrder:   SortDesc,
+			Limit:       20,
+			ShowDates:   true,
 			ShowAuthors: true,
 		},
 		{
@@ -307,10 +312,10 @@ func DefaultSections() []*Section {
 			Filters: FilterSet{
 				Kinds: []int{30023},
 			},
-			SortBy:    SortByPublishedAt,
-			SortOrder: SortDesc,
-			Limit:     10,
-			ShowDates: true,
+			SortBy:      SortByPublishedAt,
+			SortOrder:   SortDesc,
+			Limit:       10,
+			ShowDates:   true,
 			ShowAuthors: true,
 		},
 		{
@@ -320,10 +325,10 @@ func DefaultSections() []*Section {
 			Filters: FilterSet{
 				Kinds: []int{7},
 			},
-			SortBy:    SortByCreatedAt,
-			SortOrder: SortDesc,
-			Limit:     50,
-			ShowDates: true,
+			SortBy:      SortByCreatedAt,
+			SortOrder:   SortDesc,
+			Limit:       50,
+			ShowDates:   true,
 			ShowAuthors: true,
 		},
 		{
@@ -333,10 +338,10 @@ func DefaultSections() []*Section {
 			Filters: FilterSet{
 				Kinds: []int{9735},
 			},
-			SortBy:    SortByCreatedAt,
-			SortOrder: SortDesc,
-			Limit:     20,
-			ShowDates: true,
+			SortBy:      SortByCreatedAt,
+			SortOrder:   SortDesc,
+			Limit:       20,
+			ShowDates:   true,
 			ShowAuthors: true,
 		},
 	}
@@ -348,3 +353,61 @@ func DefaultSections() []*Section {
 //
 // These helper functions are deprecated and should not be used.
 // They were based on a misunderstanding of the architecture.
+
+// resolveAuthors returns normalized authors for a section, applying defaults:
+// - Decode npub values to hex
+// - Interpret "owner"/"self" as the owner's pubkey
+// - If no authors are provided, default to owner unless scope=all
+func (m *Manager) resolveAuthors(authors []string, scope Scope) []string {
+	var normalized []string
+	seen := make(map[string]struct{})
+
+	for _, author := range authors {
+		normalizedAuthor := normalizeAuthorValue(author, m.ownerPubkey)
+		if normalizedAuthor == "" {
+			continue
+		}
+
+		if _, exists := seen[normalizedAuthor]; exists {
+			continue
+		}
+		seen[normalizedAuthor] = struct{}{}
+		normalized = append(normalized, normalizedAuthor)
+	}
+
+	if len(normalized) > 0 {
+		return normalized
+	}
+
+	if scope == ScopeAll {
+		return nil
+	}
+
+	if m.ownerPubkey != "" {
+		return []string{m.ownerPubkey}
+	}
+
+	return nil
+}
+
+// normalizeAuthorValue converts npub → hex and owner/self aliases to the owner pubkey
+func normalizeAuthorValue(author string, ownerPubkey string) string {
+	if author == "" {
+		return ""
+	}
+
+	lower := strings.ToLower(author)
+	if (lower == "owner" || lower == "self") && ownerPubkey != "" {
+		return ownerPubkey
+	}
+
+	if strings.HasPrefix(author, "npub1") {
+		if _, val, err := nip19.Decode(author); err == nil {
+			if hex, ok := val.(string); ok {
+				return hex
+			}
+		}
+	}
+
+	return author
+}

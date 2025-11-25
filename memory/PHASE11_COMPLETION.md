@@ -221,7 +221,7 @@ type Page struct {
 
 **Usage**:
 ```go
-manager := sections.NewManager(storage)
+manager := sections.NewManager(storage, ownerPubkeyHex)
 
 // Register sections
 for _, section := range sections.DefaultSections() {
@@ -443,7 +443,7 @@ layout:
 
 ```go
 // Create manager
-manager := sections.NewManager(storage)
+manager := sections.NewManager(storage, ownerPubkeyHex)
 
 // Register default sections
 for _, section := range sections.DefaultSections() {

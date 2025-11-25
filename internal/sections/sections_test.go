@@ -1,7 +1,10 @@
 package sections
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 func TestDefaultSections(t *testing.T) {
@@ -35,7 +38,7 @@ func TestDefaultSections(t *testing.T) {
 // Inbox/outbox sections are defined in YAML configuration instead of code
 
 func TestSectionManager(t *testing.T) {
-	manager := NewManager(nil)
+	manager := NewManager(nil, "ownerhex")
 
 	t.Run("Register section", func(t *testing.T) {
 		section := &Section{
@@ -154,6 +157,43 @@ func TestArchiveFormatting(t *testing.T) {
 		expected := "/archive/notes/2025"
 		if selector != expected {
 			t.Errorf("expected selector %s, got %s", expected, selector)
+		}
+	})
+}
+
+func TestResolveAuthorsDefaultsAndNpub(t *testing.T) {
+	ownerHex := strings.Repeat("1", 64)
+	ownerNpub, err := nip19.EncodePublicKey(ownerHex)
+	if err != nil {
+		t.Fatalf("failed to encode owner npub: %v", err)
+	}
+
+	manager := NewManager(nil, ownerNpub)
+
+	t.Run("DefaultsToOwner", func(t *testing.T) {
+		authors := manager.resolveAuthors(nil, "")
+		if len(authors) != 1 || authors[0] != ownerHex {
+			t.Fatalf("expected default author to be owner hex, got %+v", authors)
+		}
+	})
+
+	t.Run("NpubAuthorConversion", func(t *testing.T) {
+		otherHex := strings.Repeat("2", 64)
+		otherNpub, err := nip19.EncodePublicKey(otherHex)
+		if err != nil {
+			t.Fatalf("failed to encode other npub: %v", err)
+		}
+
+		authors := manager.resolveAuthors([]string{otherNpub}, "")
+		if len(authors) != 1 || authors[0] != otherHex {
+			t.Fatalf("expected npub to convert to hex, got %+v", authors)
+		}
+	})
+
+	t.Run("ScopeAllDisablesDefaultOwner", func(t *testing.T) {
+		authors := manager.resolveAuthors(nil, ScopeAll)
+		if len(authors) != 0 {
+			t.Fatalf("expected no authors when scope=all, got %+v", authors)
 		}
 	})
 }

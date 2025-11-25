@@ -48,7 +48,7 @@ func New(cfg *config.GopherProtocol, fullCfg *config.Config, st *storage.Storage
 	// Initialize sections manager (opt-in for custom filtered views)
 	// Sections are available but not auto-registered
 	// Users can configure custom sections via config for filtered views
-	s.sectionManager = sections.NewManager(st)
+	s.sectionManager = sections.NewManager(st, fullCfg.Identity.Npub)
 
 	// Initialize router
 	s.router = NewRouter(s, host, cfg.Port)

@@ -203,6 +203,7 @@ Implementation Notes
 - FilterSet supports kinds, authors, tags, time ranges
 - **Full protocol parity**: Gopher and Gemini both support sections
 - **YAML configuration**: Sections can be configured via YAML (no Go code required)
+- **Owner default context**: If no authors are provided, sections default to the operator’s canonical pubkey (decoded from `identity.npub`). Set `scope: all` to disable the default. Authors accept `npub` or hex, and the literal `owner`/`self` aliases resolve to the operator.
 
 🚧 **Not Yet Implemented** (Future):
 - Template system (list, cards, threaded, etc.)
