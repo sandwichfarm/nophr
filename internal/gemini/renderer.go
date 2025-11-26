@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/sandwich/nophr/internal/aggregates"
 	"github.com/sandwich/nophr/internal/config"
 	"github.com/sandwich/nophr/internal/entities"
@@ -22,6 +23,7 @@ type Renderer struct {
 	config   *config.Config
 	loader   *presentation.Loader
 	resolver *entities.Resolver
+	storage  *storage.Storage
 }
 
 // NewRenderer creates a new event renderer
@@ -31,6 +33,7 @@ func NewRenderer(cfg *config.Config, st *storage.Storage) *Renderer {
 		config:   cfg,
 		loader:   presentation.NewLoader(cfg),
 		resolver: entities.NewResolver(st),
+		storage:  st,
 	}
 }
 
@@ -196,7 +199,7 @@ func (r *Renderer) RenderThread(thread *aggregates.ThreadView, homeURL string) s
 
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("Root: => /note/%s View root\n\n", thread.Root.Event.ID))
+	sb.WriteString(fmt.Sprintf("=> /note/%s Back to note\n\n", thread.FocusID))
 
 	maxDepth := r.config.Display.Limits.MaxThreadDepth
 	if maxDepth <= 0 {
@@ -205,7 +208,8 @@ func (r *Renderer) RenderThread(thread *aggregates.ThreadView, homeURL string) s
 
 	r.renderThreadNode(&sb, thread.Root, 0, thread.FocusID, maxDepth)
 
-	sb.WriteString(fmt.Sprintf("\n=> %s Back to Home\n", homeURL))
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("=> %s Back to Home\n", homeURL))
 
 	return sb.String()
 }
@@ -546,7 +550,13 @@ func (r *Renderer) renderThreadNode(sb *strings.Builder, node *aggregates.Thread
 	}
 	sb.WriteString(line)
 	sb.WriteString("\n")
-	sb.WriteString(fmt.Sprintf("%s=> /note/%s Open note\n", prefix, node.Event.ID))
+	if portals := r.portalLinksForEvent(node.Event); len(portals) > 0 {
+		for _, p := range portals {
+			sb.WriteString(fmt.Sprintf("%s=> %s Open\n", prefix, p))
+		}
+	} else {
+		sb.WriteString(fmt.Sprintf("%s=> /note/%s Open note\n", prefix, node.Event.ID))
+	}
 
 	for _, child := range node.Children {
 		r.renderThreadNode(sb, child, depth+1, focusID, maxDepth)
@@ -579,4 +589,45 @@ func (r *Renderer) threadSummary(content string) string {
 	}
 
 	return plain[:limit-len(indicator)] + indicator
+}
+
+func (r *Renderer) portalLinksForEvent(event *nostr.Event) []string {
+	code, ok := r.nostrPointer(event)
+	if !ok {
+		return nil
+	}
+
+	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
+	links := make([]string, 0, len(portals))
+	for _, base := range portals {
+		links = append(links, fmt.Sprintf("%s/%s", base, code))
+	}
+	return links
+}
+
+func (r *Renderer) nostrPointer(event *nostr.Event) (string, bool) {
+	relays, _ := r.storage.GetReadRelays(context.Background(), event.PubKey)
+
+	if event.Kind == 30023 {
+		if id := dTagValue(event); id != "" {
+			if code, err := nip19.EncodeEntity(event.PubKey, event.Kind, id, relays); err == nil {
+				return code, true
+			}
+		}
+	}
+
+	if code, err := nip19.EncodeEvent(event.ID, relays, event.PubKey); err == nil {
+		return code, true
+	}
+
+	return "", false
+}
+
+func dTagValue(event *nostr.Event) string {
+	for _, tag := range event.Tags {
+		if len(tag) >= 2 && tag[0] == "d" && tag[1] != "" {
+			return tag[1]
+		}
+	}
+	return ""
 }

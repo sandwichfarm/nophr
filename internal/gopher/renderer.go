@@ -3,10 +3,13 @@ package gopher
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
+	"github.com/nbd-wtf/go-nostr/nip19"
 	"github.com/sandwich/nophr/internal/aggregates"
 	"github.com/sandwich/nophr/internal/config"
 	"github.com/sandwich/nophr/internal/entities"
@@ -22,6 +25,7 @@ type Renderer struct {
 	config   *config.Config
 	loader   *presentation.Loader
 	resolver *entities.Resolver
+	storage  *storage.Storage
 }
 
 // NewRenderer creates a new event renderer
@@ -31,6 +35,7 @@ func NewRenderer(cfg *config.Config, st *storage.Storage) *Renderer {
 		config:   cfg,
 		loader:   presentation.NewLoader(cfg),
 		resolver: entities.NewResolver(st),
+		storage:  st,
 	}
 }
 
@@ -178,7 +183,9 @@ func (r *Renderer) RenderThread(thread *aggregates.ThreadView) string {
 	sb.WriteString(strings.Repeat("=", 70))
 	sb.WriteString("\n\n")
 
-	sb.WriteString(fmt.Sprintf("Root selector: /note/%s\n\n", thread.Root.Event.ID))
+	// Navigation
+	sb.WriteString(fmt.Sprintf("Back to note: /note/%s\n", thread.FocusID))
+	sb.WriteString("Home: /\n\n")
 
 	maxDepth := r.config.Display.Limits.MaxThreadDepth
 	if maxDepth <= 0 {
@@ -488,7 +495,14 @@ func (r *Renderer) renderThreadNode(sb *strings.Builder, node *aggregates.Thread
 	}
 	sb.WriteString(line)
 	sb.WriteString("\n")
-	sb.WriteString(fmt.Sprintf("%s  selector: /note/%s\n", prefix, node.Event.ID))
+
+	if portals := r.portalLinks(node.Event); len(portals) > 0 {
+		for _, p := range portals {
+			sb.WriteString(fmt.Sprintf("%s  portal: %s\n", prefix, p))
+		}
+	} else {
+		sb.WriteString(fmt.Sprintf("%s  selector: /note/%s\n", prefix, node.Event.ID))
+	}
 
 	for _, child := range node.Children {
 		r.renderThreadNode(sb, child, depth+1, focusID, maxDepth)
@@ -521,4 +535,151 @@ func (r *Renderer) threadSummary(content string) string {
 	}
 
 	return plain[:limit-len(indicator)] + indicator
+}
+
+func (r *Renderer) portalLinks(event *nostr.Event) []string {
+	code, ok := r.nostrPointer(event)
+	if !ok {
+		return nil
+	}
+
+	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
+	links := make([]string, 0, len(portals))
+	for _, base := range portals {
+		links = append(links, fmt.Sprintf("%s/%s", base, code))
+	}
+	return links
+}
+
+func (r *Renderer) nostrPointer(event *nostr.Event) (string, bool) {
+	relays, _ := r.storage.GetReadRelays(context.Background(), event.PubKey)
+
+	if event.Kind == 30023 {
+		if id := dTagValue(event); id != "" {
+			if code, err := nip19.EncodeEntity(event.PubKey, event.Kind, id, relays); err == nil {
+				return code, true
+			}
+		}
+	}
+
+	if code, err := nip19.EncodeEvent(event.ID, relays, event.PubKey); err == nil {
+		return code, true
+	}
+
+	return "", false
+}
+
+func dTagValue(event *nostr.Event) string {
+	for _, tag := range event.Tags {
+		if len(tag) >= 2 && tag[0] == "d" && tag[1] != "" {
+			return tag[1]
+		}
+	}
+	return ""
+}
+
+// RenderThreadGophermap renders a thread as a gophermap with clickable portal links when available.
+func (r *Renderer) RenderThreadGophermap(gmap *Gophermap, thread *aggregates.ThreadView) {
+	if thread == nil || thread.Root == nil {
+		gmap.AddError("Thread not found")
+		return
+	}
+
+	gmap.AddInfo("Thread")
+	gmap.AddInfo(strings.Repeat("=", 20))
+	gmap.AddSpacer()
+	gmap.AddDirectory("Back to note", fmt.Sprintf("/note/%s", thread.FocusID))
+	gmap.AddDirectory("⌂ Home", "/")
+	gmap.AddSpacer()
+
+	maxDepth := r.config.Display.Limits.MaxThreadDepth
+	if maxDepth <= 0 {
+		maxDepth = 10
+	}
+
+	r.renderThreadNodeMap(gmap, thread.Root, 0, thread.FocusID, maxDepth)
+}
+
+func (r *Renderer) renderThreadNodeMap(gmap *Gophermap, node *aggregates.ThreadNode, depth int, focusID string, maxDepth int) {
+	if node == nil {
+		return
+	}
+
+	if depth >= maxDepth {
+		prefix := strings.Repeat(r.threadIndent(), depth)
+		gmap.AddInfo(fmt.Sprintf("%s… additional replies hidden", prefix))
+		return
+	}
+
+	prefix := strings.Repeat(r.threadIndent(), depth)
+	markers := make([]string, 0)
+	if depth == 0 {
+		markers = append(markers, "root")
+	}
+	if node.Event.ID == focusID {
+		markers = append(markers, "you are here")
+	}
+
+	summary := r.threadSummary(node.Event.Content)
+	line := fmt.Sprintf("%s- %s (%s)", prefix, summary, formatTimestamp(node.Event.CreatedAt))
+	if len(markers) > 0 {
+		line = fmt.Sprintf("%s [%s]", line, strings.Join(markers, ", "))
+	}
+	gmap.AddInfo(line)
+
+	if portals := r.portalLinks(node.Event); len(portals) > 0 {
+		for _, p := range portals {
+			r.addPortalItem(gmap, fmt.Sprintf("%s  portal", prefix), p)
+		}
+	} else {
+		gmap.AddTextFile(fmt.Sprintf("%s  open note", prefix), fmt.Sprintf("/note/%s", node.Event.ID))
+	}
+
+	for _, child := range node.Children {
+		r.renderThreadNodeMap(gmap, child, depth+1, focusID, maxDepth)
+	}
+}
+
+func (r *Renderer) addPortalItem(gmap *Gophermap, display, url string) {
+	host, port := parseURLHostPort(url)
+	gmap.Items = append(gmap.Items, Item{
+		Type:     ItemTypeHTML,
+		Display:  display,
+		Selector: url,
+		Host:     host,
+		Port:     port,
+	})
+}
+
+func parseURLHostPort(raw string) (string, int) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw, 70
+	}
+
+	port := 0
+	if u.Port() != "" {
+		if p, err := strconv.Atoi(u.Port()); err == nil {
+			port = p
+		}
+	}
+	if port == 0 {
+		switch u.Scheme {
+		case "https":
+			port = 443
+		case "http":
+			port = 80
+		case "gemini":
+			port = 1965
+		default:
+			port = 70
+		}
+	}
+
+	host := u.Hostname()
+	if host == "" {
+		host = raw
+	}
+
+	return host, port
 }

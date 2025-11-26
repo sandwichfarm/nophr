@@ -570,11 +570,10 @@ func (r *Router) handleThread(ctx context.Context, rootID string) []byte {
 		return gmap.Bytes()
 	}
 
-	// Render the thread
-	text := r.renderer.RenderThread(thread)
-
-	// Return as plain text with gopher terminator
-	return append([]byte(text), []byte(".\r\n")...)
+	// Render the thread as a gophermap to make portal links clickable
+	gmap := NewGophermap(r.host, r.port)
+	r.renderer.RenderThreadGophermap(gmap, thread)
+	return gmap.Bytes()
 }
 
 // handleProfile handles displaying a profile
