@@ -50,6 +50,14 @@ protocols:
     bind: "0.0.0.0"
     max_users: 100               # limit finger queries to owner + top N followed
 
+export:
+  gopher:
+    enabled: false               # generate static gopher holes when true
+    output_dir: "./export/gopher"
+    host: "gopher.example.com"   # host/port used in generated gophermaps
+    port: 70
+    max_items: 200               # cap items per section to keep maps small
+
 relays:
   seeds:
     - "wss://relay.example1"
@@ -172,6 +180,7 @@ layout:
 Notes
 - protocols: configure which servers to run (Gopher/Gemini/Finger); can run all three simultaneously.
 - Gemini TLS auto-generate writes to tls.cert_path/key_path; if those paths are not writable, Gemini falls back to an in-memory self-signed cert and logs a warning—set writable paths to persist.
+- export.gopher: when enabled, new owner root notes (kind 1 without e tags) and articles (kind 30023) trigger static gopher hole regeneration into output_dir; host/port fields control the generated selectors.
 - storage: uses Khatru (Go relay framework) with eventstore backend (SQLite or LMDB); no PostgreSQL.
 - relays.seeds are bootstrap-only endpoints to find kinds 0/3/10002 from Nostr network.
 - discovery builds the active relay set per pubkey from NIP-65 (kind 10002).

@@ -33,6 +33,14 @@ protocols:
     bind: "0.0.0.0"
     max_users: 100  # Limit finger queries to owner + top N followed
 
+export:
+  gopher:
+    enabled: false
+    output_dir: "./export/gopher"
+    host: "gopher.example.com"
+    port: 70
+    max_items: 200
+
 relays:
   seeds:
     - "wss://relay.damus.io"

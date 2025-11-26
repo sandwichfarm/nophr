@@ -14,23 +14,24 @@ var exampleConfig embed.FS
 
 // Config represents the complete nophr configuration
 type Config struct {
-	Site       Site       `yaml:"site"`
-	Identity   Identity   `yaml:"identity"`
-	Protocols  Protocols  `yaml:"protocols"`
-	Relays     Relays     `yaml:"relays"`
-	Discovery  Discovery  `yaml:"discovery"`
-	Sync       Sync       `yaml:"sync"`
-	Inbox      Inbox      `yaml:"inbox"`
-	Outbox     Outbox     `yaml:"outbox"`
-	Storage    Storage    `yaml:"storage"`
-	Rendering     Rendering     `yaml:"rendering"`
-	Caching       Caching       `yaml:"caching"`
-	Logging       Logging       `yaml:"logging"`
-	Layout        Layout        `yaml:"layout"`
-	Display       Display       `yaml:"display"`
-	Presentation  Presentation  `yaml:"presentation"`
-	Behavior      Behavior      `yaml:"behavior"`
-	Sections      []SectionConfig `yaml:"sections"`
+	Site         Site            `yaml:"site"`
+	Identity     Identity        `yaml:"identity"`
+	Protocols    Protocols       `yaml:"protocols"`
+	Relays       Relays          `yaml:"relays"`
+	Discovery    Discovery       `yaml:"discovery"`
+	Sync         Sync            `yaml:"sync"`
+	Inbox        Inbox           `yaml:"inbox"`
+	Outbox       Outbox          `yaml:"outbox"`
+	Storage      Storage         `yaml:"storage"`
+	Export       ExportConfig    `yaml:"export"`
+	Rendering    Rendering       `yaml:"rendering"`
+	Caching      Caching         `yaml:"caching"`
+	Logging      Logging         `yaml:"logging"`
+	Layout       Layout          `yaml:"layout"`
+	Display      Display         `yaml:"display"`
+	Presentation Presentation    `yaml:"presentation"`
+	Behavior     Behavior        `yaml:"behavior"`
+	Sections     []SectionConfig `yaml:"sections"`
 }
 
 // Site contains site metadata
@@ -94,18 +95,18 @@ type Relays struct {
 
 // RelayPolicy contains relay connection policies
 type RelayPolicy struct {
-	ConnectTimeoutMs   int   `yaml:"connect_timeout_ms"`
-	MaxConcurrentSubs  int   `yaml:"max_concurrent_subs"`
-	BackoffMs          []int `yaml:"backoff_ms"`
+	ConnectTimeoutMs  int   `yaml:"connect_timeout_ms"`
+	MaxConcurrentSubs int   `yaml:"max_concurrent_subs"`
+	BackoffMs         []int `yaml:"backoff_ms"`
 }
 
 // Discovery contains relay discovery settings
 type Discovery struct {
-	RefreshSeconds      int  `yaml:"refresh_seconds"`
-	UseOwnerHints       bool `yaml:"use_owner_hints"`
-	UseAuthorHints      bool `yaml:"use_author_hints"`
-	FallbackToSeeds     bool `yaml:"fallback_to_seeds"`
-	MaxRelaysPerAuthor  int  `yaml:"max_relays_per_author"`
+	RefreshSeconds     int  `yaml:"refresh_seconds"`
+	UseOwnerHints      bool `yaml:"use_owner_hints"`
+	UseAuthorHints     bool `yaml:"use_author_hints"`
+	FallbackToSeeds    bool `yaml:"fallback_to_seeds"`
+	MaxRelaysPerAuthor int  `yaml:"max_relays_per_author"`
 }
 
 // Sync contains synchronization settings
@@ -192,25 +193,25 @@ type Retention struct {
 
 // Inbox contains inbox aggregation settings
 type Inbox struct {
-	IncludeReplies    bool          `yaml:"include_replies"`
-	IncludeReactions  bool          `yaml:"include_reactions"`
-	IncludeZaps       bool          `yaml:"include_zaps"`
-	GroupByThread     bool          `yaml:"group_by_thread"`
-	CollapseReposts   bool          `yaml:"collapse_reposts"`
-	NoiseFilters      NoiseFilters  `yaml:"noise_filters"`
+	IncludeReplies   bool         `yaml:"include_replies"`
+	IncludeReactions bool         `yaml:"include_reactions"`
+	IncludeZaps      bool         `yaml:"include_zaps"`
+	GroupByThread    bool         `yaml:"group_by_thread"`
+	CollapseReposts  bool         `yaml:"collapse_reposts"`
+	NoiseFilters     NoiseFilters `yaml:"noise_filters"`
 }
 
 // NoiseFilters defines filtering rules for inbox
 type NoiseFilters struct {
-	MinZapSats            int      `yaml:"min_zap_sats"`
-	AllowedReactionChars  []string `yaml:"allowed_reaction_chars"`
+	MinZapSats           int      `yaml:"min_zap_sats"`
+	AllowedReactionChars []string `yaml:"allowed_reaction_chars"`
 }
 
 // Outbox contains outbox/publishing settings
 type Outbox struct {
-	Publish   PublishSettings `yaml:"publish"`
-	DraftDir  string          `yaml:"draft_dir"`
-	AutoSign  bool            `yaml:"auto_sign"`
+	Publish  PublishSettings `yaml:"publish"`
+	DraftDir string          `yaml:"draft_dir"`
+	AutoSign bool            `yaml:"auto_sign"`
 }
 
 // PublishSettings defines what to publish
@@ -245,9 +246,9 @@ type GopherRendering struct {
 
 // GeminiRendering contains Gemini rendering options
 type GeminiRendering struct {
-	MaxLineLength  int    `yaml:"max_line_length"`
-	ShowTimestamps bool   `yaml:"show_timestamps"`
-	Emoji          bool   `yaml:"emoji"`
+	MaxLineLength  int  `yaml:"max_line_length"`
+	ShowTimestamps bool `yaml:"show_timestamps"`
+	Emoji          bool `yaml:"emoji"`
 }
 
 // FingerRendering contains Finger rendering options
@@ -258,11 +259,11 @@ type FingerRendering struct {
 
 // Caching contains caching configuration
 type Caching struct {
-	Enabled    bool              `yaml:"enabled"`
-	Engine     string            `yaml:"engine"` // memory|redis
-	RedisURL   string            `yaml:"redis_url"`
-	TTL        CacheTTL          `yaml:"ttl"`
-	Aggregates AggregatesCaching `yaml:"aggregates"`
+	Enabled    bool                   `yaml:"enabled"`
+	Engine     string                 `yaml:"engine"` // memory|redis
+	RedisURL   string                 `yaml:"redis_url"`
+	TTL        CacheTTL               `yaml:"ttl"`
+	Aggregates AggregatesCaching      `yaml:"aggregates"`
 	Overrides  map[string]interface{} `yaml:"overrides,omitempty"`
 }
 
@@ -274,9 +275,9 @@ type CacheTTL struct {
 
 // AggregatesCaching contains aggregate caching settings
 type AggregatesCaching struct {
-	Enabled                    bool `yaml:"enabled"`
-	UpdateOnIngest             bool `yaml:"update_on_ingest"`
-	ReconcilerIntervalSeconds  int  `yaml:"reconciler_interval_seconds"`
+	Enabled                   bool `yaml:"enabled"`
+	UpdateOnIngest            bool `yaml:"update_on_ingest"`
+	ReconcilerIntervalSeconds int  `yaml:"reconciler_interval_seconds"`
 }
 
 // Logging contains logging configuration
@@ -317,11 +318,11 @@ type DetailDisplay struct {
 
 // DisplayLimits controls length and truncation
 type DisplayLimits struct {
-	SummaryLength       int `yaml:"summary_length"`
-	MaxContentLength    int `yaml:"max_content_length"`
-	MaxThreadDepth      int `yaml:"max_thread_depth"`
-	MaxRepliesInFeed    int `yaml:"max_replies_in_feed"`
-	TruncateIndicator   string `yaml:"truncate_indicator"`
+	SummaryLength     int    `yaml:"summary_length"`
+	MaxContentLength  int    `yaml:"max_content_length"`
+	MaxThreadDepth    int    `yaml:"max_thread_depth"`
+	MaxRepliesInFeed  int    `yaml:"max_replies_in_feed"`
+	TruncateIndicator string `yaml:"truncate_indicator"`
 }
 
 // Presentation contains visual presentation and layout options
@@ -333,28 +334,28 @@ type Presentation struct {
 
 // Headers defines header content for pages
 type Headers struct {
-	Global    HeaderConfig            `yaml:"global"`
-	PerPage   map[string]HeaderConfig `yaml:"per_page,omitempty"`
+	Global  HeaderConfig            `yaml:"global"`
+	PerPage map[string]HeaderConfig `yaml:"per_page,omitempty"`
 }
 
 // HeaderConfig defines a single header configuration
 type HeaderConfig struct {
-	Enabled   bool   `yaml:"enabled"`
-	Content   string `yaml:"content"`
-	FilePath  string `yaml:"file_path"`
+	Enabled  bool   `yaml:"enabled"`
+	Content  string `yaml:"content"`
+	FilePath string `yaml:"file_path"`
 }
 
 // Footers defines footer content for pages
 type Footers struct {
-	Global    FooterConfig            `yaml:"global"`
-	PerPage   map[string]FooterConfig `yaml:"per_page,omitempty"`
+	Global  FooterConfig            `yaml:"global"`
+	PerPage map[string]FooterConfig `yaml:"per_page,omitempty"`
 }
 
 // FooterConfig defines a single footer configuration
 type FooterConfig struct {
-	Enabled   bool   `yaml:"enabled"`
-	Content   string `yaml:"content"`
-	FilePath  string `yaml:"file_path"`
+	Enabled  bool   `yaml:"enabled"`
+	Content  string `yaml:"content"`
+	FilePath string `yaml:"file_path"`
 }
 
 // Separators defines visual separators
@@ -372,24 +373,38 @@ type SeparatorConfig struct {
 
 // Behavior contains behavioral settings for queries and filtering
 type Behavior struct {
-	ContentFiltering ContentFiltering  `yaml:"content_filtering"`
-	SortPreferences  SortPreferences   `yaml:"sort_preferences"`
-	Pagination       PaginationConfig  `yaml:"pagination"`
+	ContentFiltering ContentFiltering `yaml:"content_filtering"`
+	SortPreferences  SortPreferences  `yaml:"sort_preferences"`
+	Pagination       PaginationConfig `yaml:"pagination"`
+}
+
+// ExportConfig configures static exports
+type ExportConfig struct {
+	Gopher GopherExportConfig `yaml:"gopher"`
+}
+
+// GopherExportConfig configures static gopher generation
+type GopherExportConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	OutputDir string `yaml:"output_dir"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	MaxItems  int    `yaml:"max_items"`
 }
 
 // ContentFiltering defines content filtering rules
 type ContentFiltering struct {
-	Enabled              bool     `yaml:"enabled"`
-	MinReactions         int      `yaml:"min_reactions"`
-	MinZapSats           int      `yaml:"min_zap_sats"`
-	MinEngagement        int      `yaml:"min_engagement"` // Combined score
-	HideNoInteractions   bool     `yaml:"hide_no_interactions"`
-	AllowedContentTypes  []string `yaml:"allowed_content_types"`
+	Enabled             bool     `yaml:"enabled"`
+	MinReactions        int      `yaml:"min_reactions"`
+	MinZapSats          int      `yaml:"min_zap_sats"`
+	MinEngagement       int      `yaml:"min_engagement"` // Combined score
+	HideNoInteractions  bool     `yaml:"hide_no_interactions"`
+	AllowedContentTypes []string `yaml:"allowed_content_types"`
 }
 
 // SortPreferences defines sorting options
 type SortPreferences struct {
-	Notes    string `yaml:"notes"`    // chronological|engagement|zaps|reactions
+	Notes    string `yaml:"notes"` // chronological|engagement|zaps|reactions
 	Articles string `yaml:"articles"`
 	Replies  string `yaml:"replies"`
 	Mentions string `yaml:"mentions"`
@@ -397,9 +412,9 @@ type SortPreferences struct {
 
 // PaginationConfig defines pagination settings
 type PaginationConfig struct {
-	Enabled          bool `yaml:"enabled"`
-	ItemsPerPage     int  `yaml:"items_per_page"`
-	MaxPages         int  `yaml:"max_pages"`
+	Enabled      bool `yaml:"enabled"`
+	ItemsPerPage int  `yaml:"items_per_page"`
+	MaxPages     int  `yaml:"max_pages"`
 }
 
 // applyDefaults fills in missing configuration fields with sensible defaults
@@ -451,6 +466,28 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Layout.Pages == nil {
 		cfg.Layout.Pages = make(map[string]interface{})
+	}
+
+	// Apply Export defaults
+	if cfg.Export.Gopher.OutputDir == "" {
+		cfg.Export.Gopher.OutputDir = defaults.Export.Gopher.OutputDir
+	}
+	if cfg.Export.Gopher.Host == "" {
+		host := cfg.Protocols.Gopher.Host
+		if host == "" {
+			host = defaults.Export.Gopher.Host
+		}
+		cfg.Export.Gopher.Host = host
+	}
+	if cfg.Export.Gopher.Port == 0 {
+		port := cfg.Protocols.Gopher.Port
+		if port == 0 {
+			port = defaults.Export.Gopher.Port
+		}
+		cfg.Export.Gopher.Port = port
+	}
+	if cfg.Export.Gopher.MaxItems == 0 {
+		cfg.Export.Gopher.MaxItems = defaults.Export.Gopher.MaxItems
 	}
 
 	// Apply Sync performance defaults
@@ -622,6 +659,15 @@ func Default() *Config {
 			SQLitePath:    "./data/nophr.db",
 			LMDBPath:      "./data/nophr.lmdb",
 			LMDBMaxSizeMB: 10240,
+		},
+		Export: ExportConfig{
+			Gopher: GopherExportConfig{
+				Enabled:   false,
+				OutputDir: "./export/gopher",
+				Host:      "localhost",
+				Port:      70,
+				MaxItems:  200,
+			},
 		},
 		Rendering: Rendering{
 			Gopher: GopherRendering{
@@ -876,6 +922,22 @@ func Validate(cfg *Config) error {
 		}
 	}
 
+	// Validate gopher export
+	if cfg.Export.Gopher.Enabled {
+		if cfg.Export.Gopher.OutputDir == "" {
+			return fmt.Errorf("export.gopher.output_dir is required when export.gopher.enabled is true")
+		}
+		if cfg.Export.Gopher.Host == "" {
+			return fmt.Errorf("export.gopher.host is required when export.gopher.enabled is true")
+		}
+		if cfg.Export.Gopher.Port < 1 || cfg.Export.Gopher.Port > 65535 {
+			return fmt.Errorf("export.gopher.port must be between 1 and 65535")
+		}
+		if cfg.Export.Gopher.MaxItems < 1 || cfg.Export.Gopher.MaxItems > 5000 {
+			return fmt.Errorf("export.gopher.max_items must be between 1 and 5000")
+		}
+	}
+
 	// Validate advanced retention (Phase 20)
 	if cfg.Sync.Retention.Advanced != nil {
 		if err := cfg.Sync.Retention.Advanced.Validate(); err != nil {
@@ -888,19 +950,19 @@ func Validate(cfg *Config) error {
 
 // SectionConfig represents a section definition in YAML
 type SectionConfig struct {
-	Name        string               `yaml:"name"`
-	Path        string               `yaml:"path"`
-	Title       string               `yaml:"title"`
-	Description string               `yaml:"description"`
-	Filters     SectionFilterConfig  `yaml:"filters"`
-	SortBy      string               `yaml:"sort_by"`
-	SortOrder   string               `yaml:"sort_order"`
-	Limit       int                  `yaml:"limit"`
-	ShowDates   bool                 `yaml:"show_dates"`
-	ShowAuthors bool                 `yaml:"show_authors"`
-	GroupBy     string               `yaml:"group_by"`
+	Name        string                 `yaml:"name"`
+	Path        string                 `yaml:"path"`
+	Title       string                 `yaml:"title"`
+	Description string                 `yaml:"description"`
+	Filters     SectionFilterConfig    `yaml:"filters"`
+	SortBy      string                 `yaml:"sort_by"`
+	SortOrder   string                 `yaml:"sort_order"`
+	Limit       int                    `yaml:"limit"`
+	ShowDates   bool                   `yaml:"show_dates"`
+	ShowAuthors bool                   `yaml:"show_authors"`
+	GroupBy     string                 `yaml:"group_by"`
 	MoreLink    *SectionMoreLinkConfig `yaml:"more_link"`
-	Order       int                  `yaml:"order"`
+	Order       int                    `yaml:"order"`
 }
 
 // SectionFilterConfig represents section filters in YAML
@@ -908,10 +970,10 @@ type SectionFilterConfig struct {
 	Kinds   []int               `yaml:"kinds"`
 	Authors []string            `yaml:"authors"`
 	Tags    map[string][]string `yaml:"tags"`
-	Since   string              `yaml:"since"`   // RFC3339 or duration like "-24h"
-	Until   string              `yaml:"until"`   // RFC3339 or duration
+	Since   string              `yaml:"since"` // RFC3339 or duration like "-24h"
+	Until   string              `yaml:"until"` // RFC3339 or duration
 	Search  string              `yaml:"search"`
-	Scope   string              `yaml:"scope"`   // self, following, mutual, foaf, all
+	Scope   string              `yaml:"scope"` // self, following, mutual, foaf, all
 }
 
 // SectionMoreLinkConfig represents a "more" link configuration

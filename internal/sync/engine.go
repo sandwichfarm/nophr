@@ -38,6 +38,8 @@ type Engine struct {
 
 	// Phase 20: Optional retention evaluation callback
 	evaluateRetention func(context.Context, *nostr.Event) error
+
+	eventHandlers []EventHandler
 }
 
 // AggregateUpdate represents a pending aggregate update
@@ -48,6 +50,9 @@ type AggregateUpdate struct {
 	Sats          int64  // For zaps
 	InteractionAt int64
 }
+
+// EventHandler is notified for each stored event.
+type EventHandler func(context.Context, *nostr.Event)
 
 // New creates a new sync engine (legacy signature for compatibility)
 func New(ctx context.Context, cfg *config.Config, st *storage.Storage, client *internalnostr.Client) *Engine {
@@ -68,8 +73,8 @@ func New(ctx context.Context, cfg *config.Config, st *storage.Storage, client *i
 		cursors:       cursors,
 		ctx:           engineCtx,
 		cancel:        cancel,
-		eventChan:     make(chan *nostr.Event, 5000), // Tier 2: Larger buffer for burst handling
-		eventCache:    NewEventCache(5000),        // Tier 1: Cache last 5000 event IDs
+		eventChan:     make(chan *nostr.Event, 5000),     // Tier 2: Larger buffer for burst handling
+		eventCache:    NewEventCache(5000),               // Tier 1: Cache last 5000 event IDs
 		aggregateChan: make(chan *AggregateUpdate, 1000), // Tier 2: Async aggregate queue
 	}
 }
@@ -97,8 +102,8 @@ func NewEngine(st *storage.Storage, cfg *config.Config) *Engine {
 		cursors:       cursors,
 		ctx:           engineCtx,
 		cancel:        cancel,
-		eventChan:     make(chan *nostr.Event, 5000), // Tier 2: Larger buffer for burst handling
-		eventCache:    NewEventCache(5000),        // Tier 1: Cache last 5000 event IDs
+		eventChan:     make(chan *nostr.Event, 5000),     // Tier 2: Larger buffer for burst handling
+		eventCache:    NewEventCache(5000),               // Tier 1: Cache last 5000 event IDs
 		aggregateChan: make(chan *AggregateUpdate, 1000), // Tier 2: Async aggregate queue
 	}
 }
@@ -142,6 +147,14 @@ func (e *Engine) Stop() {
 	close(e.eventChan)
 	close(e.aggregateChan) // Tier 2: Close aggregate channel
 	e.wg.Wait()
+}
+
+// AddEventHandler registers an optional event handler.
+func (e *Engine) AddEventHandler(handler EventHandler) {
+	if handler == nil {
+		return
+	}
+	e.eventHandlers = append(e.eventHandlers, handler)
 }
 
 // SetRetentionEvaluator sets the retention evaluation callback (Phase 20)
@@ -586,7 +599,19 @@ func (e *Engine) processEvent(event *nostr.Event) error {
 		}
 	}
 
+	e.notifyEventHandlers(event)
+
 	return nil
+}
+
+func (e *Engine) notifyEventHandlers(event *nostr.Event) {
+	if len(e.eventHandlers) == 0 {
+		return
+	}
+
+	for _, handler := range e.eventHandlers {
+		handler(e.ctx, event)
+	}
 }
 
 // periodicRefresh refreshes replaceable events periodically

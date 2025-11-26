@@ -11,6 +11,7 @@ import (
 
 	"github.com/sandwich/nophr/internal/aggregates"
 	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwich/nophr/internal/exporter"
 	"github.com/sandwich/nophr/internal/finger"
 	"github.com/sandwich/nophr/internal/gemini"
 	"github.com/sandwich/nophr/internal/gopher"
@@ -127,6 +128,16 @@ func run(cfg *config.Config) error {
 
 	defer retentionMgr.Stop()
 
+	// Initialize static gopher exporter (optional)
+	var gopherExporter *exporter.GopherExporter
+	if cfg.Export.Gopher.Enabled {
+		exp, err := exporter.NewGopherExporter(cfg, st)
+		if err != nil {
+			return fmt.Errorf("failed to initialize gopher exporter: %w", err)
+		}
+		gopherExporter = exp
+	}
+
 	// Initialize sync engine if enabled
 	var syncEngine *sync.Engine
 	if cfg.Sync.Enabled {
@@ -137,6 +148,11 @@ func run(cfg *config.Config) error {
 		if cfg.Sync.Retention.Advanced != nil && cfg.Sync.Retention.Advanced.Enabled {
 			fmt.Println("  Integrating advanced retention with sync engine...")
 			syncEngine.SetRetentionEvaluator(retentionMgr.EvaluateEvent)
+		}
+
+		if gopherExporter != nil {
+			fmt.Println("  Enabling static gopher export on owner publishes...")
+			syncEngine.AddEventHandler(gopherExporter.HandleEvent)
 		}
 
 		if err := syncEngine.Start(); err != nil {
