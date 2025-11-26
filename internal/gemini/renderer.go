@@ -64,11 +64,19 @@ func (r *Renderer) RenderNote(event *nostr.Event, agg *aggregates.EventAggregate
 	// Content (resolve NIP-19 entities, then render markdown as gemtext)
 	content := event.Content
 	ctx := context.Background()
-	content = r.resolver.ReplaceEntities(ctx, content, entities.PlainTextFormatter)
+	content, foundEntities := r.resolver.ReplaceEntitiesWithMetadata(ctx, content, entities.PlainTextFormatter)
+	foundEntities = entities.DedupeEntities(foundEntities)
 
-	rendered, _ := r.parser.RenderGemini([]byte(content), nil)
+	rendered, _ := r.parser.RenderGemini([]byte(content), r.geminiRenderOptions())
+	rendered = clampWidth(rendered, r.config.Rendering.Gemini.MaxLineLength)
 	sb.WriteString(rendered)
 	sb.WriteString("\n")
+
+	if len(foundEntities) > 0 {
+		sb.WriteString("## Portal Links\n\n")
+		sb.WriteString(r.renderPortalLinks(foundEntities))
+		sb.WriteString("\n")
+	}
 
 	// Aggregates
 	if agg != nil && agg.HasInteractions() {
@@ -81,6 +89,22 @@ func (r *Renderer) RenderNote(event *nostr.Event, agg *aggregates.EventAggregate
 	sb.WriteString("## Actions\n\n")
 	sb.WriteString(fmt.Sprintf("=> %s View Thread\n", threadURL))
 	sb.WriteString(fmt.Sprintf("=> %s Back to Home\n", homeURL))
+
+	return sb.String()
+}
+
+// RenderNoteWithThread renders a note and optionally appends a thread view
+func (r *Renderer) RenderNoteWithThread(event *nostr.Event, agg *aggregates.EventAggregates, thread *aggregates.ThreadView, threadURL, homeURL string) string {
+	base := r.RenderNote(event, agg, threadURL, homeURL)
+
+	if thread == nil || !r.config.Display.Detail.ShowThread {
+		return base
+	}
+
+	var sb strings.Builder
+	sb.WriteString(base)
+	sb.WriteString("\n## Thread\n\n")
+	sb.WriteString(r.RenderThread(thread, homeURL))
 
 	return sb.String()
 }
@@ -165,47 +189,23 @@ func (r *Renderer) RenderProfile(profileEvent *nostr.Event, homeURL string) stri
 }
 
 // RenderThread renders a thread with replies
-func (r *Renderer) RenderThread(root *aggregates.EnrichedEvent, replies []*aggregates.EnrichedEvent, homeURL string) string {
+func (r *Renderer) RenderThread(thread *aggregates.ThreadView, homeURL string) string {
+	if thread == nil || thread.Root == nil {
+		return "Thread not found\n"
+	}
+
 	var sb strings.Builder
 
-	sb.WriteString("# Thread\n\n")
+	sb.WriteString(fmt.Sprintf("Root: => /note/%s View root\n\n", thread.Root.Event.ID))
 
-	// Root post
-	sb.WriteString("## Root Post\n\n")
-	sb.WriteString(fmt.Sprintf("By %s - %s\n\n", truncatePubkey(root.Event.PubKey), formatTimestamp(root.Event.CreatedAt)))
-
-	// Render content
-	content, _ := r.parser.RenderGemini([]byte(root.Event.Content), nil)
-	sb.WriteString(content)
-	sb.WriteString("\n")
-
-	// Root aggregates
-	if root.Aggregates != nil && root.Aggregates.HasInteractions() {
-		sb.WriteString(r.renderAggregates(root.Aggregates))
-		sb.WriteString("\n")
+	maxDepth := r.config.Display.Limits.MaxThreadDepth
+	if maxDepth <= 0 {
+		maxDepth = 10
 	}
 
-	// Replies
-	if len(replies) > 0 {
-		sb.WriteString(fmt.Sprintf("## Replies (%d)\n\n", len(replies)))
+	r.renderThreadNode(&sb, thread.Root, 0, thread.FocusID, maxDepth)
 
-		for i, reply := range replies {
-			sb.WriteString(fmt.Sprintf("### Reply %d\n\n", i+1))
-			sb.WriteString(fmt.Sprintf("By %s - %s\n\n", truncatePubkey(reply.Event.PubKey), formatTimestamp(reply.Event.CreatedAt)))
-
-			// Reply content
-			replyContent, _ := r.parser.RenderGemini([]byte(reply.Event.Content), nil)
-			sb.WriteString(replyContent)
-			sb.WriteString("\n")
-
-			// Reply link
-			sb.WriteString(fmt.Sprintf("=> /note/%s View Reply\n\n", reply.Event.ID))
-		}
-	} else {
-		sb.WriteString("## Replies\n\nNo replies yet.\n\n")
-	}
-
-	sb.WriteString(fmt.Sprintf("=> %s Back to Home\n", homeURL))
+	sb.WriteString(fmt.Sprintf("\n=> %s Back to Home\n", homeURL))
 
 	return sb.String()
 }
@@ -370,4 +370,164 @@ func (r *Renderer) GetSummary(content string, maxLen int) string {
 	}
 
 	return summary
+}
+
+func (r *Renderer) geminiRenderOptions() *markdown.RenderOptions {
+	opts := markdown.DefaultGeminiOptions()
+	if r.config.Rendering.Gemini.MaxLineLength > 0 {
+		opts.Width = r.config.Rendering.Gemini.MaxLineLength
+	}
+	return opts
+}
+
+func (r *Renderer) renderPortalLinks(resolved []*entities.Entity) string {
+	resolved = entities.DedupeEntities(resolved)
+	if len(resolved) == 0 {
+		return ""
+	}
+
+	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
+	var lines []string
+
+	for _, entity := range resolved {
+		nip19 := strings.TrimPrefix(entity.OriginalText, "nostr:")
+		lines = append(lines, fmt.Sprintf("* %s (%s)", entity.DisplayName, entity.Type))
+		for _, portal := range portals {
+			lines = append(lines, fmt.Sprintf("=> %s/%s %s", portal, nip19, entity.DisplayName))
+		}
+		lines = append(lines, "")
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func clampWidth(content string, width int) string {
+	if width <= 0 {
+		return content
+	}
+
+	var out []string
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			out = append(out, line)
+			continue
+		}
+
+		if preserveGeminiLine(line) {
+			out = append(out, line)
+			continue
+		}
+
+		wrapped := wrapLineToWidth(line, width)
+		out = append(out, wrapped...)
+	}
+
+	return strings.Join(out, "\n")
+}
+
+func preserveGeminiLine(line string) bool {
+	trimmed := strings.TrimLeft(line, " ")
+	if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "=>") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "* ") {
+		return true
+	}
+	return false
+}
+
+func wrapLineToWidth(text string, width int) []string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{""}
+	}
+
+	var lines []string
+	var current strings.Builder
+
+	for _, word := range words {
+		if current.Len() == 0 {
+			current.WriteString(word)
+			continue
+		}
+
+		if current.Len()+1+len(word) <= width {
+			current.WriteString(" ")
+			current.WriteString(word)
+			continue
+		}
+
+		lines = append(lines, current.String())
+		current.Reset()
+		current.WriteString(word)
+	}
+
+	if current.Len() > 0 {
+		lines = append(lines, current.String())
+	}
+
+	return lines
+}
+
+func (r *Renderer) renderThreadNode(sb *strings.Builder, node *aggregates.ThreadNode, depth int, focusID string, maxDepth int) {
+	if node == nil {
+		return
+	}
+
+	if depth >= maxDepth {
+		prefix := strings.Repeat(r.threadIndent(), depth)
+		sb.WriteString(fmt.Sprintf("%s… additional replies hidden\n", prefix))
+		return
+	}
+
+	prefix := strings.Repeat(r.threadIndent(), depth)
+	markers := make([]string, 0)
+	if depth == 0 {
+		markers = append(markers, "root")
+	}
+	if node.Event.ID == focusID {
+		markers = append(markers, "you are here")
+	}
+
+	summary := r.threadSummary(node.Event.Content)
+	line := fmt.Sprintf("%s* %s (%s)", prefix, summary, formatTimestamp(node.Event.CreatedAt))
+	if len(markers) > 0 {
+		line = fmt.Sprintf("%s [%s]", line, strings.Join(markers, ", "))
+	}
+	sb.WriteString(line)
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("%s=> /note/%s Open note\n", prefix, node.Event.ID))
+
+	for _, child := range node.Children {
+		r.renderThreadNode(sb, child, depth+1, focusID, maxDepth)
+	}
+}
+
+func (r *Renderer) threadIndent() string {
+	indent := r.config.Rendering.Gopher.ThreadIndent
+	if indent == "" {
+		return "  "
+	}
+	return indent
+}
+
+func (r *Renderer) threadSummary(content string) string {
+	limit := r.config.Display.Limits.SummaryLength
+	if limit <= 0 {
+		limit = 100
+	}
+
+	plain := strings.ReplaceAll(content, "\n", " ")
+	plain = strings.TrimSpace(plain)
+	if len(plain) <= limit {
+		return plain
+	}
+
+	indicator := r.config.Display.Limits.TruncateIndicator
+	if indicator == "" {
+		indicator = "..."
+	}
+
+	return plain[:limit-len(indicator)] + indicator
 }

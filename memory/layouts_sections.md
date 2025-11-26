@@ -201,6 +201,7 @@ Implementation Notes
 - Sections are completely optional
 - Default routes work without configuration
 - FilterSet supports kinds, authors, tags, time ranges
+- `is_reply` filter to explicitly include or exclude replies
 - **Full protocol parity**: Gopher and Gemini both support sections
 - **YAML configuration**: Sections can be configured via YAML (no Go code required)
 - **Owner default context**: If no authors are provided, sections default to the operator’s canonical pubkey (decoded from `identity.npub`). Set `scope: all` to disable the default. Authors accept `npub` or hex, and the literal `owner`/`self` aliases resolve to the operator.
@@ -211,7 +212,7 @@ Implementation Notes
 - Feed generation (RSS/JSON)
 - hide_when_empty field
 - Scope-based filtering (following, mutual, foaf)
-- Advanced filter fields (is_reply, mentions, etc.)
+- Advanced filter fields (mentions, etc.)
 
 📝 **Usage Pattern**:
 1. Define sections in YAML config file (or register in Go code for advanced use cases)

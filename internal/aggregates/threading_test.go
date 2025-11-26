@@ -130,12 +130,23 @@ func TestParseThreadInfo_NoTags(t *testing.T) {
 
 func TestParseThreadInfo_InvalidKind(t *testing.T) {
 	event := &nostr.Event{
-		Kind: 3, // Not a note
+		Kind: 3, // Not a threadable kind
 	}
 
 	_, err := ParseThreadInfo(event)
 	if err == nil {
 		t.Error("Expected error for non-note kind")
+	}
+}
+
+func TestParseThreadInfo_LongFormAllowed(t *testing.T) {
+	event := &nostr.Event{
+		Kind: 30023,
+		Tags: nostr.Tags{},
+	}
+
+	if _, err := ParseThreadInfo(event); err != nil {
+		t.Fatalf("expected long-form to be threadable, got error %v", err)
 	}
 }
 

@@ -198,18 +198,58 @@ func (r *Resolver) resolveAddrTitle(ctx context.Context, addr *nostr.EntityPoint
 	return fmt.Sprintf("Article by %s", truncatePubkey(addr.PublicKey))
 }
 
-// ReplaceEntities replaces all NIP-19 entities in text with their resolved forms
-// Returns the modified text
+// ReplaceEntities replaces all NIP-19 entities in text with their resolved forms.
+// Returns the modified text.
 func (r *Resolver) ReplaceEntities(ctx context.Context, text string, formatter func(*Entity) string) string {
-	return nostrEntityRegex.ReplaceAllStringFunc(text, func(match string) string {
+	result, _ := r.ReplaceEntitiesWithMetadata(ctx, text, formatter)
+	return result
+}
+
+func dedupeEntities(entities []*Entity) []*Entity {
+	seen := make(map[string]struct{})
+	unique := make([]*Entity, 0, len(entities))
+	for _, e := range entities {
+		if _, ok := seen[e.OriginalText]; ok {
+			continue
+		}
+		seen[e.OriginalText] = struct{}{}
+		unique = append(unique, e)
+	}
+	return unique
+}
+
+// ReplaceEntitiesWithMetadata replaces all NIP-19 entities and also returns the resolved entities.
+// This allows callers to render portal links or other contextual output based on the matches found.
+func (r *Resolver) ReplaceEntitiesWithMetadata(ctx context.Context, text string, formatter func(*Entity) string) (string, []*Entity) {
+	resolved := make([]*Entity, 0)
+
+	replaced := nostrEntityRegex.ReplaceAllStringFunc(text, func(match string) string {
 		entityStr := strings.TrimPrefix(match, "nostr:")
 		entity, err := r.ResolveEntity(ctx, entityStr)
 		if err != nil {
 			// Keep original if resolution fails
 			return match
 		}
+
+		resolved = append(resolved, entity)
 		return formatter(entity)
 	})
+
+	return replaced, resolved
+}
+
+// DedupeEntities removes duplicate entities by OriginalText, preserving order
+func DedupeEntities(entities []*Entity) []*Entity {
+	seen := make(map[string]struct{})
+	unique := make([]*Entity, 0, len(entities))
+	for _, e := range entities {
+		if _, ok := seen[e.OriginalText]; ok {
+			continue
+		}
+		seen[e.OriginalText] = struct{}{}
+		unique = append(unique, e)
+	}
+	return unique
 }
 
 // Helper functions

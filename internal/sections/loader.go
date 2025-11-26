@@ -94,6 +94,11 @@ func convertFilterConfig(cfg config.SectionFilterConfig) (FilterSet, error) {
 		filterSet.Scope = Scope(cfg.Scope)
 	}
 
+	// Convert reply flag
+	if cfg.IsReply != nil {
+		filterSet.IsReply = cfg.IsReply
+	}
+
 	// Parse time ranges
 	if cfg.Since != "" {
 		sinceTime, err := parseTimeOrDuration(cfg.Since)

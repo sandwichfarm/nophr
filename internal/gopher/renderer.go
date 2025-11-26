@@ -49,15 +49,25 @@ func (r *Renderer) RenderNote(event *nostr.Event, agg *aggregates.EventAggregate
 
 	// Resolve NIP-19 entities
 	ctx := context.Background()
-	content = r.resolver.ReplaceEntities(ctx, content, entities.GopherFormatter)
+	content, foundEntities := r.resolver.ReplaceEntitiesWithMetadata(ctx, content, entities.GopherFormatter)
+	foundEntities = entities.DedupeEntities(foundEntities)
 
 	// Apply max content length if configured
 	if r.config.Display.Limits.MaxContentLength > 0 && len(content) > r.config.Display.Limits.MaxContentLength {
 		content = content[:r.config.Display.Limits.MaxContentLength] + r.config.Display.Limits.TruncateIndicator
 	}
 
-	rendered, _ := r.parser.RenderGopher([]byte(content), nil)
+	rendered, _ := r.parser.RenderGopher([]byte(content), r.gopherRenderOptions())
+	rendered = clampWidth(rendered, r.config.Rendering.Gopher.MaxLineLength)
 	sb.WriteString(rendered)
+
+	if len(foundEntities) > 0 {
+		sb.WriteString("\n")
+		sb.WriteString(r.applyConfigSeparator("section"))
+		sb.WriteString("\n")
+		sb.WriteString(r.renderPortalLinks(foundEntities))
+		sb.WriteString("\n")
+	}
 
 	// Aggregates footer - only show if configured for detail view
 	if r.config.Display.Detail.ShowInteractions && agg != nil && agg.HasInteractions() {
@@ -138,40 +148,44 @@ func (r *Renderer) RenderProfile(profileEvent *nostr.Event) string {
 	return sb.String()
 }
 
+// RenderNoteWithThread renders a note and optionally appends a threaded view
+func (r *Renderer) RenderNoteWithThread(event *nostr.Event, agg *aggregates.EventAggregates, thread *aggregates.ThreadView) string {
+	base := r.RenderNote(event, agg)
+
+	if thread == nil || !r.config.Display.Detail.ShowThread {
+		return base
+	}
+
+	var sb strings.Builder
+	sb.WriteString(base)
+	sb.WriteString("\n")
+	sb.WriteString(r.applyConfigSeparator("section"))
+	sb.WriteString("\n")
+	sb.WriteString(r.RenderThread(thread))
+
+	return sb.String()
+}
+
 // RenderThread renders a thread with indentation
-func (r *Renderer) RenderThread(root *aggregates.EnrichedEvent, replies []*aggregates.EnrichedEvent) string {
+func (r *Renderer) RenderThread(thread *aggregates.ThreadView) string {
+	if thread == nil || thread.Root == nil {
+		return "Thread not found"
+	}
+
 	var sb strings.Builder
 
 	sb.WriteString("Thread\n")
 	sb.WriteString(strings.Repeat("=", 70))
 	sb.WriteString("\n\n")
 
-	// Root post
-	sb.WriteString("● Root Post\n")
-	sb.WriteString(strings.Repeat("-", 70))
-	sb.WriteString("\n")
-	sb.WriteString(r.RenderNote(root.Event, root.Aggregates))
-	sb.WriteString("\n\n")
+	sb.WriteString(fmt.Sprintf("Root selector: /note/%s\n\n", thread.Root.Event.ID))
 
-	// Replies
-	if len(replies) > 0 {
-		sb.WriteString(fmt.Sprintf("Replies (%d)\n", len(replies)))
-		sb.WriteString(strings.Repeat("-", 70))
-		sb.WriteString("\n\n")
-
-		for i, reply := range replies {
-			sb.WriteString(fmt.Sprintf("  ↳ Reply %d by %s\n", i+1, truncatePubkey(reply.Event.PubKey)))
-			sb.WriteString(fmt.Sprintf("    %s\n\n", formatTimestamp(reply.Event.CreatedAt)))
-
-			// Indent reply content
-			content, _ := r.parser.RenderGopher([]byte(reply.Event.Content), nil)
-			indented := indentText(content, "    ")
-			sb.WriteString(indented)
-			sb.WriteString("\n")
-		}
-	} else {
-		sb.WriteString("No replies yet.\n")
+	maxDepth := r.config.Display.Limits.MaxThreadDepth
+	if maxDepth <= 0 {
+		maxDepth = 10
 	}
+
+	r.renderThreadNode(&sb, thread.Root, 0, thread.FocusID, maxDepth)
 
 	return sb.String()
 }
@@ -357,4 +371,133 @@ func (r *Renderer) RenderNoteList(notes []*aggregates.EnrichedEvent, title strin
 	}
 
 	return lines
+}
+
+func (r *Renderer) gopherRenderOptions() *markdown.RenderOptions {
+	opts := markdown.DefaultGopherOptions()
+	if r.config.Rendering.Gopher.MaxLineLength > 0 {
+		opts.Width = r.config.Rendering.Gopher.MaxLineLength
+	}
+	return opts
+}
+
+func (r *Renderer) renderPortalLinks(resolved []*entities.Entity) string {
+	resolved = entities.DedupeEntities(resolved)
+	if len(resolved) == 0 {
+		return ""
+	}
+
+	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
+	lines := []string{"Portal links", strings.Repeat("-", 70)}
+
+	for _, entity := range resolved {
+		nip19 := strings.TrimPrefix(entity.OriginalText, "nostr:")
+		lines = append(lines, fmt.Sprintf("- %s (%s)", entity.DisplayName, entity.Type))
+		for _, portal := range portals {
+			lines = append(lines, fmt.Sprintf("  %s/%s", portal, nip19))
+		}
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func clampWidth(content string, width int) string {
+	if width <= 0 {
+		return content
+	}
+
+	var out []string
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			out = append(out, line)
+			continue
+		}
+
+		if preserveLine(line) {
+			out = append(out, line)
+			continue
+		}
+
+		wrapped := wrapText(line, width)
+		out = append(out, wrapped...)
+	}
+
+	return strings.Join(out, "\n")
+}
+
+func preserveLine(line string) bool {
+	trimmed := strings.TrimLeft(line, " ")
+	if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, ">") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "* ") || strings.HasPrefix(trimmed, "=>") {
+		return true
+	}
+	if strings.HasPrefix(line, "    ") {
+		return true
+	}
+	return false
+}
+
+func (r *Renderer) renderThreadNode(sb *strings.Builder, node *aggregates.ThreadNode, depth int, focusID string, maxDepth int) {
+	if node == nil {
+		return
+	}
+
+	if depth >= maxDepth {
+		prefix := strings.Repeat(r.threadIndent(), depth)
+		sb.WriteString(fmt.Sprintf("%s… additional replies hidden\n", prefix))
+		return
+	}
+
+	prefix := strings.Repeat(r.threadIndent(), depth)
+	markers := make([]string, 0)
+	if depth == 0 {
+		markers = append(markers, "root")
+	}
+	if node.Event.ID == focusID {
+		markers = append(markers, "you are here")
+	}
+
+	summary := r.threadSummary(node.Event.Content)
+	line := fmt.Sprintf("%s- %s (%s)", prefix, summary, formatTimestamp(node.Event.CreatedAt))
+	if len(markers) > 0 {
+		line = fmt.Sprintf("%s [%s]", line, strings.Join(markers, ", "))
+	}
+	sb.WriteString(line)
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("%s  selector: /note/%s\n", prefix, node.Event.ID))
+
+	for _, child := range node.Children {
+		r.renderThreadNode(sb, child, depth+1, focusID, maxDepth)
+	}
+}
+
+func (r *Renderer) threadIndent() string {
+	indent := r.config.Rendering.Gopher.ThreadIndent
+	if indent == "" {
+		return "  "
+	}
+	return indent
+}
+
+func (r *Renderer) threadSummary(content string) string {
+	limit := r.config.Display.Limits.SummaryLength
+	if limit <= 0 {
+		limit = 100
+	}
+
+	plain := strings.ReplaceAll(content, "\n", " ")
+	plain = strings.TrimSpace(plain)
+	if len(plain) <= limit {
+		return plain
+	}
+
+	indicator := r.config.Display.Limits.TruncateIndicator
+	if indicator == "" {
+		indicator = "..."
+	}
+
+	return plain[:limit-len(indicator)] + indicator
 }

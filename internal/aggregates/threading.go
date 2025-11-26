@@ -15,8 +15,8 @@ type ThreadInfo struct {
 
 // ParseThreadInfo extracts thread relationship info from a note event using NIP-10
 func ParseThreadInfo(event *nostr.Event) (*ThreadInfo, error) {
-	if event.Kind != 1 {
-		return nil, fmt.Errorf("expected kind 1 note, got %d", event.Kind)
+	if !isThreadableKind(event.Kind) {
+		return nil, fmt.Errorf("expected threadable kind (1 or 30023), got %d", event.Kind)
 	}
 
 	info := &ThreadInfo{
@@ -157,4 +157,8 @@ func IsMentioningPubkey(event *nostr.Event, pubkey string) bool {
 		}
 	}
 	return false
+}
+
+func isThreadableKind(kind int) bool {
+	return kind == 1 || kind == 30023
 }

@@ -99,8 +99,7 @@ Tables
 - Linearize or convert to preformatted block (```)
 
 Line Length
-- Wrap at configured max_line_length (default 80 for Gemini)
-- Gemtext lines are typically not hard-wrapped; let client wrap
+- Wrap at configured max_line_length (default 80 for Gemini) to clamp long-form lines
 
 3. Markdown → Plain Text (for Finger)
 

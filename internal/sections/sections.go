@@ -8,6 +8,7 @@ import (
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip19"
+	"github.com/sandwich/nophr/internal/aggregates"
 	"github.com/sandwich/nophr/internal/storage"
 )
 
@@ -43,6 +44,7 @@ type FilterSet struct {
 	Until   *time.Time
 	Search  string
 	Scope   Scope
+	IsReply *bool
 }
 
 // SortField defines how to sort events
@@ -198,6 +200,9 @@ func (m *Manager) GetPage(ctx context.Context, sectionName string, pageNum int) 
 		return nil, fmt.Errorf("failed to query events: %w", err)
 	}
 
+	// Apply reply/root filtering if configured
+	events = m.applyIsReplyFilter(events, section.Filters.IsReply)
+
 	// Sort events
 	m.sortEvents(events, section.SortBy, section.SortOrder)
 
@@ -229,8 +234,14 @@ func (m *Manager) GetPage(ctx context.Context, sectionName string, pageNum int) 
 
 // buildFilter converts section filters to Nostr filter
 func (m *Manager) buildFilter(section *Section, pageNum int) nostr.Filter {
+	limit := section.Limit * pageNum // Get all up to this page
+	// When post-filtering for replies/roots, fetch extra to avoid empty pages
+	if section.Filters.IsReply != nil {
+		limit = section.Limit * (pageNum + 2)
+	}
+
 	filter := nostr.Filter{
-		Limit: section.Limit * pageNum, // Get all up to this page
+		Limit: limit,
 	}
 
 	if len(section.Filters.Kinds) > 0 {
@@ -388,6 +399,30 @@ func (m *Manager) resolveAuthors(authors []string, scope Scope) []string {
 	}
 
 	return nil
+}
+
+func (m *Manager) applyIsReplyFilter(events []*nostr.Event, isReply *bool) []*nostr.Event {
+	if isReply == nil {
+		return events
+	}
+
+	filtered := make([]*nostr.Event, 0, len(events))
+	for _, event := range events {
+		info, err := aggregates.ParseThreadInfo(event)
+		if err != nil {
+			// Treat non-threadable kinds as roots
+			if !*isReply {
+				filtered = append(filtered, event)
+			}
+			continue
+		}
+
+		if info.IsReply() == *isReply {
+			filtered = append(filtered, event)
+		}
+	}
+
+	return filtered
 }
 
 // normalizeAuthorValue converts npub → hex and owner/self aliases to the owner pubkey

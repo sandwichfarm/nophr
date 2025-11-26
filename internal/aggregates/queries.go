@@ -148,54 +148,92 @@ func (qh *QueryHelper) GetThreadReplies(ctx context.Context, rootEventID string)
 
 // GetThreadByEvent returns the full thread for a given event
 func (qh *QueryHelper) GetThreadByEvent(ctx context.Context, eventID string) (*ThreadView, error) {
-	// Get the event
-	filter := nostr.Filter{
-		IDs: []string{eventID},
-	}
-
-	events, err := qh.storage.QueryEvents(ctx, filter)
+	// Get the focus event
+	event, err := qh.fetchSingleEvent(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(events) == 0 {
+	if event == nil {
 		return nil, nil
 	}
 
-	event := events[0]
+	rootID := eventID
+	if isThreadableKind(event.Kind) {
+		if ti, err := ParseThreadInfo(event); err == nil && ti.RootEventID != "" {
+			rootID = ti.RootEventID
+		}
+	}
 
-	// Determine root
-	rootID, err := qh.manager.GetThreadRoot(ctx, event)
+	rootEvent, err := qh.fetchSingleEvent(ctx, rootID)
 	if err != nil {
-		rootID = eventID // Use event itself as root
+		return nil, err
+	}
+	if rootEvent == nil {
+		// Fallback to focus as root if root not found
+		rootEvent = event
 	}
 
-	// Get root event
-	rootFilter := nostr.Filter{
-		IDs: []string{rootID},
+	// Collect replies for the root (includes nested replies because they reference the root)
+	filter := nostr.Filter{
+		Kinds: []int{1},
+		Tags: nostr.TagMap{
+			"e": []string{rootID},
+		},
+		Limit: qh.threadQueryLimit(),
 	}
 
-	rootEvents, err := qh.storage.QueryEvents(ctx, rootFilter)
+	replyEvents, err := qh.storage.QueryEvents(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	var root *nostr.Event
-	if len(rootEvents) > 0 {
-		root = rootEvents[0]
-	} else {
-		root = event // Fallback
-	}
-
-	// Get all replies in thread
-	replies, err := qh.GetThreadReplies(ctx, rootID)
+	enrichedReplies, err := qh.enrichEvents(ctx, replyEvents)
 	if err != nil {
 		return nil, err
 	}
+
+	rootNode := &ThreadNode{
+		Event:      rootEvent,
+		Aggregates: qh.enrichEvent(ctx, rootEvent).Aggregates,
+	}
+
+	nodes := map[string]*ThreadNode{
+		rootEvent.ID: rootNode,
+	}
+
+	// First pass: create nodes
+	for _, reply := range enrichedReplies {
+		nodes[reply.Event.ID] = &ThreadNode{
+			Event:      reply.Event,
+			Aggregates: reply.Aggregates,
+		}
+	}
+
+	// Second pass: attach children to parents
+	for _, reply := range enrichedReplies {
+		parentID := rootID
+		if info, err := ParseThreadInfo(reply.Event); err == nil {
+			if info.RootEventID != "" && info.RootEventID != rootID {
+				// Skip replies to other roots that slipped in
+				continue
+			}
+			if info.ReplyToID != "" {
+				parentID = info.ReplyToID
+			}
+		}
+
+		parent, ok := nodes[parentID]
+		if !ok {
+			parent = rootNode
+		}
+		parent.Children = append(parent.Children, nodes[reply.Event.ID])
+	}
+
+	sortThreadNodes(rootNode)
 
 	return &ThreadView{
-		Root:    qh.enrichEvent(ctx, root),
-		Replies: replies,
+		Root:    rootNode,
+		FocusID: eventID,
 	}, nil
 }
 
@@ -325,10 +363,58 @@ type EnrichedEvent struct {
 	Aggregates *EventAggregates
 }
 
-// ThreadView represents a full thread with root and replies
+// ThreadNode represents a node in a thread tree
+type ThreadNode struct {
+	Event      *nostr.Event
+	Aggregates *EventAggregates
+	Children   []*ThreadNode
+}
+
+// ThreadView represents a full thread with root and nested replies
 type ThreadView struct {
-	Root    *EnrichedEvent
-	Replies []*EnrichedEvent
+	Root    *ThreadNode
+	FocusID string
+}
+
+// sortThreadNodes orders children chronologically for readability
+func sortThreadNodes(node *ThreadNode) {
+	if node == nil {
+		return
+	}
+
+	sort.Slice(node.Children, func(i, j int) bool {
+		return node.Children[i].Event.CreatedAt < node.Children[j].Event.CreatedAt
+	})
+
+	for _, child := range node.Children {
+		sortThreadNodes(child)
+	}
+}
+
+func (qh *QueryHelper) fetchSingleEvent(ctx context.Context, eventID string) (*nostr.Event, error) {
+	events, err := qh.storage.QueryEvents(ctx, nostr.Filter{
+		IDs:   []string{eventID},
+		Limit: 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(events) == 0 {
+		return nil, nil
+	}
+	return events[0], nil
+}
+
+// threadQueryLimit provides a conservative limit for thread queries so we can filter/indent
+func (qh *QueryHelper) threadQueryLimit() int {
+	limit := qh.config.Display.Limits.MaxRepliesInFeed * qh.config.Display.Limits.MaxThreadDepth * 4
+	if limit < 200 {
+		return 200
+	}
+	if limit > 2000 {
+		return 2000
+	}
+	return limit
 }
 
 // === Public Section-Based Query Methods ===

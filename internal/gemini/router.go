@@ -221,8 +221,14 @@ func (r *Router) handleNote(ctx context.Context, noteID string) []byte {
 		}
 	}
 
+	// Build thread view (includes replies and navigation)
+	threadView, err := r.server.GetQueryHelper().GetThreadByEvent(ctx, noteID)
+	if err != nil {
+		threadView = nil
+	}
+
 	// Render the note
-	gemtext := r.renderer.RenderNote(note, agg, r.geminiURL("/thread/"+noteID), r.geminiURL("/"))
+	gemtext := r.renderer.RenderNoteWithThread(note, agg, threadView, r.geminiURL("/thread/"+noteID), r.geminiURL("/"))
 	return FormatSuccessResponse(gemtext)
 }
 
@@ -237,7 +243,7 @@ func (r *Router) handleThread(ctx context.Context, rootID string) []byte {
 	}
 
 	// Render the thread
-	gemtext := r.renderer.RenderThread(thread.Root, thread.Replies, r.geminiURL("/"))
+	gemtext := r.renderer.RenderThread(thread, r.geminiURL("/"))
 	return FormatSuccessResponse(gemtext)
 }
 

@@ -579,8 +579,14 @@ func (r *Router) handleNote(ctx context.Context, noteID string) []byte {
 		}
 	}
 
+	// Build thread view (includes replies and navigation)
+	threadView, err := r.server.GetQueryHelper().GetThreadByEvent(ctx, noteID)
+	if err != nil {
+		threadView = nil
+	}
+
 	// Render the note as plain text
-	text := r.renderer.RenderNote(note, agg)
+	text := r.renderer.RenderNoteWithThread(note, agg, threadView)
 
 	// Return as plain text with gopher terminator (not gophermap)
 	return append([]byte(text), []byte(".\r\n")...)
@@ -601,7 +607,7 @@ func (r *Router) handleThread(ctx context.Context, rootID string) []byte {
 	}
 
 	// Render the thread
-	text := r.renderer.RenderThread(thread.Root, thread.Replies)
+	text := r.renderer.RenderThread(thread)
 
 	// Return as plain text with gopher terminator
 	return append([]byte(text), []byte(".\r\n")...)

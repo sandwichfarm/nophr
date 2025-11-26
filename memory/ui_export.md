@@ -24,6 +24,7 @@ Gopher Server (RFC 1436)
   - Aggregate stats footer: reply count, reaction total (with breakdown by emoji/char if >1 type), cumulative zap sats
   - Threaded replies: Full thread tree with indentation, each reply showing its own aggregates
   - Navigation: Links to parent event, individual reply events
+  - NIP-19 entities resolved inline with display names and portal references appended (njump.me, nostr.at, nostr.eu)
 - Archives: gophermap by year/month with links to individual posts.
 - Diagnostics: text file showing relay status, sync cursors, author counts.
 
@@ -61,6 +62,7 @@ Gemini Server (gemini://)
   - Aggregate stats section: reply count, reaction total (with breakdown by emoji if >1 type), cumulative zap sats
   - Threaded replies: Full thread tree with links, each reply showing its own aggregates
   - Navigation: Links to parent event, individual reply events
+  - NIP-19 entities resolved inline with portal links appended (njump.me, nostr.at, nostr.eu) for quick off-site navigation
 - Thread navigation: links to parent and child replies.
 - Input support: search queries, filter selection via Gemini input (status 10).
 - Archives: gemtext index by year/month with links.
@@ -87,7 +89,7 @@ Content Transformation
   - Extract inline links to separate => lines
   - Convert ordered lists to unordered (* 1. item)
   - Preserve code blocks and quotes
-  - Optional line wrapping at 80 chars
+  - Optional line wrapping at configured max_line_length (default 80) to clamp long-form article width
 - Nostr events → Finger response: strip all markdown, compact format with timestamps and summaries.
   - Remove all formatting syntax
   - Truncate to max length (default 500 chars)

@@ -1029,6 +1029,7 @@ type SectionFilterConfig struct {
 	Until   string              `yaml:"until"` // RFC3339 or duration
 	Search  string              `yaml:"search"`
 	Scope   string              `yaml:"scope"` // self, following, mutual, foaf, all
+	IsReply *bool               `yaml:"is_reply"` // true = only replies, false = only roots
 }
 
 // SectionMoreLinkConfig represents a "more" link configuration
