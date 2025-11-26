@@ -29,26 +29,45 @@ func (fb *FilterBuilder) BuildFilters(authors []string, since int64) []nostr.Fil
 		kinds = []int{0, 1, 3, 6, 7, 9735, 30023, 10002}
 	}
 
-	filters := make([]nostr.Filter, 0)
-
-	// Main filter for configured authors and kinds
-	filter := nostr.Filter{
-		Authors: authors,
-		Kinds:   kinds,
-	}
-
-	// Add since cursor if provided
-	if since > 0 {
-		sinceTs := nostr.Timestamp(since)
-		filter.Since = &sinceTs
-	}
-
 	// Apply max authors limit if configured
 	if fb.config.Scope.MaxAuthors > 0 && len(authors) > fb.config.Scope.MaxAuthors {
-		filter.Authors = authors[:fb.config.Scope.MaxAuthors]
+		authors = authors[:fb.config.Scope.MaxAuthors]
 	}
 
-	filters = append(filters, filter)
+	var replaceableKinds []int
+	var regularKinds []int
+	for _, kind := range kinds {
+		if kind == 0 || kind == 3 || kind == 10002 || kind == 30023 {
+			replaceableKinds = append(replaceableKinds, kind)
+			continue
+		}
+		regularKinds = append(regularKinds, kind)
+	}
+
+	filters := make([]nostr.Filter, 0)
+
+	// Replaceable kinds (0,3,10002,30023) must be fetched without since cursors
+	if len(replaceableKinds) > 0 {
+		filters = append(filters, nostr.Filter{
+			Authors: authors,
+			Kinds:   replaceableKinds,
+		})
+	}
+
+	// Non-replaceable kinds honor since cursor
+	if len(regularKinds) > 0 {
+		filter := nostr.Filter{
+			Authors: authors,
+			Kinds:   regularKinds,
+		}
+
+		if since > 0 {
+			sinceTs := nostr.Timestamp(since)
+			filter.Since = &sinceTs
+		}
+
+		filters = append(filters, filter)
+	}
 
 	return filters
 }

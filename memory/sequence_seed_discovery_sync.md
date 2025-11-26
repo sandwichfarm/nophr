@@ -80,7 +80,8 @@ sequenceDiagram
     Relays-->>App: EVENT 10002 (hints)
     App->>App: Persist relay_hints(author)
   end
-  App->>Relays: SUB kinds [0,1,6,7,9735,30023] with since cursors
+  App->>Relays: SUB replaceables [0,3,10002,30023] (no since)
+  App->>Relays: SUB non-replaceables [1,6,7,9735] with since cursors
   Relays-->>App: EVENTS…
   App->>App: Ingest -> DB; update refs/aggregates; cache
   App-->>Operator: Serve pages; SSE streams interactions
@@ -91,7 +92,7 @@ sequenceDiagram
 Notes
 - Discovery is ongoing: hints may change; connections update without restart.
 - Seeds are only for bootstrap and fallback; active reads come from authors' hints where possible.
-- Replaceable kinds are refreshed regardless of since cursors.
+- Replaceable kinds (0/3/10002/30023) are refreshed regardless of since cursors.
 
 Error Paths & Backoff (Draft)
 

@@ -23,7 +23,7 @@ protocols:
     port: 1965
     bind: "0.0.0.0"
     tls:
-      cert_path: "./certs/cert.pem"
+      cert_path: "./certs/cert.pem" 
       key_path: "./certs/key.pem"
       auto_generate: true  # Generate self-signed cert if not found
 
@@ -82,7 +82,7 @@ sync:
     keep_days: 365
     prune_on_start: true
   performance:
-    workers: 4              # Number of parallel event processing workers (default: 4)
+    workers: 2              # Number of parallel event processing workers (default: 4)
     use_negentropy: true    # Enable NIP-77 negentropy for efficient sync (default: true); always falls back to REQ if unsupported
 
 inbox:
@@ -104,7 +104,7 @@ outbox:
   auto_sign: false
 
 storage:
-  driver: "sqlite"  # sqlite|lmdb (via Khatru eventstore)
+  driver: "lmdb"  # sqlite|lmdb (via Khatru eventstore)
   sqlite_path: "./data/nophr.db"
   lmdb_path: "./data/nophr.lmdb"  # if driver=lmdb
   lmdb_max_size_mb: 10240  # max DB size for LMDB (10GB default)
@@ -129,18 +129,18 @@ caching:
   redis_url: ""  # via env if engine=redis
   ttl:
     sections:
-      notes: 60  # seconds
-      comments: 30
-      articles: 300
-      interactions: 10
+      notes: 3600  # seconds
+      comments: 3600
+      articles: 3600
+      interactions: 3600
     render:
-      gopher_menu: 300  # cache gophermap generation
-      gemini_page: 300  # cache gemtext rendering
-      finger_response: 60  # cache finger queries
-      kind_1: 86400  # 24h
-      kind_30023: 604800  # 7d
-      kind_0: 3600  # 1h
-      kind_3: 600  # 10m
+      gopher_menu: 3600
+      gemini_page: 3600
+      finger_response: 60
+      kind_1: 86400
+      kind_30023: 604800
+      kind_0: 3600
+      kind_3: 1800
   aggregates:
     enabled: true
     update_on_ingest: true
@@ -155,9 +155,6 @@ layout:
   sections: {}
   pages: {}
 
-# ============================================================================
-# PHASE 18: Display Customization and Content Control
-# ============================================================================
 
 display:
   # Controls what information is shown in feed/list views vs detail views

@@ -26,11 +26,12 @@ func TestNewFilterBuilder(t *testing.T) {
 
 func TestBuildFilters(t *testing.T) {
 	tests := []struct {
-		name          string
-		cfg           *config.Sync
-		authors       []string
-		since         int64
-		expectedKinds int
+		name            string
+		cfg             *config.Sync
+		authors         []string
+		since           int64
+		expectedFilters int
+		expectedKinds   int
 	}{
 		{
 			name: "with configured kinds",
@@ -38,25 +39,29 @@ func TestBuildFilters(t *testing.T) {
 				Kinds: config.SyncKinds{
 					Notes:       true,
 					ContactList: true,
+					Articles:    true,
 				},
 			},
-			authors:       []string{"pubkey1", "pubkey2"},
-			since:         12345,
-			expectedKinds: 2,
+			authors:         []string{"pubkey1", "pubkey2"},
+			since:           12345,
+			expectedFilters: 2, // replaceable (kinds 3) + regular (kinds 1)
+			expectedKinds:   3,
 		},
 		{
-			name:          "with default kinds",
-			cfg:           &config.Sync{Kinds: config.SyncKinds{}},
-			authors:       []string{"pubkey1"},
-			since:         0,
-			expectedKinds: 8, // Empty SyncKinds falls back to 8 default kinds
+			name:            "with default kinds",
+			cfg:             &config.Sync{Kinds: config.SyncKinds{}},
+			authors:         []string{"pubkey1"},
+			since:           0,
+			expectedFilters: 2, // replaceable + regular split
+			expectedKinds:   8, // Empty SyncKinds falls back to 8 default kinds
 		},
 		{
-			name:          "empty authors",
-			cfg:           &config.Sync{},
-			authors:       []string{},
-			since:         0,
-			expectedKinds: 0,
+			name:            "empty authors",
+			cfg:             &config.Sync{},
+			authors:         []string{},
+			since:           0,
+			expectedFilters: 0,
+			expectedKinds:   0,
 		},
 	}
 
@@ -72,14 +77,16 @@ func TestBuildFilters(t *testing.T) {
 				return
 			}
 
-			if len(filters) != 1 {
-				t.Errorf("Expected 1 filter, got %d", len(filters))
+			if len(filters) != tt.expectedFilters {
+				t.Errorf("Expected %d filters, got %d", tt.expectedFilters, len(filters))
 			}
 
-			if len(filters) > 0 {
-				if len(filters[0].Kinds) != tt.expectedKinds {
-					t.Errorf("Expected %d kinds, got %d", tt.expectedKinds, len(filters[0].Kinds))
-				}
+			totalKinds := 0
+			for _, f := range filters {
+				totalKinds += len(f.Kinds)
+			}
+			if totalKinds != tt.expectedKinds {
+				t.Errorf("Expected %d total kinds, got %d", tt.expectedKinds, totalKinds)
 			}
 		})
 	}
