@@ -2,9 +2,9 @@
 # For full documentation, see: memory/configuration.md
 
 site:
-  title: "My Notes"
-  description: "Personal Nostr gopherhole"
-  operator: "Alice"
+  title: "sandwich.farm"
+  description: ""
+  operator: "sandwich"
 
 identity:
   # Your Nostr public key (required)
@@ -39,6 +39,12 @@ export:
     output_dir: "./export/gopher"
     host: "gopher.example.com"
     port: 70
+    max_items: 200
+  gemini:
+    enabled: false
+    output_dir: "./export/gemini"
+    host: "gemini.example.com"
+    port: 1965
     max_items: 200
 
 relays:

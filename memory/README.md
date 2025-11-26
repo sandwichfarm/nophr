@@ -62,7 +62,7 @@ Design References
 - sync_scope.md — Social graph and scope
 - sequence_seed_discovery_sync.md — Discovery→sync flow
 - inbox_outbox.md — Aggregates and interaction model
-- static_gopher_export.md — Static gopher hole generation triggers/config
+- static_gopher_export.md — Static export (Gopher/Gemini) triggers/config
 - caching.md, cache_keys_hashing.md — Caching strategy and keys
 - diagnostics.md, operations.md, distribution.md — Ops and packaging
 - security_privacy.md — Security and privacy

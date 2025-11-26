@@ -381,10 +381,20 @@ type Behavior struct {
 // ExportConfig configures static exports
 type ExportConfig struct {
 	Gopher GopherExportConfig `yaml:"gopher"`
+	Gemini GeminiExportConfig `yaml:"gemini"`
 }
 
 // GopherExportConfig configures static gopher generation
 type GopherExportConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	OutputDir string `yaml:"output_dir"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	MaxItems  int    `yaml:"max_items"`
+}
+
+// GeminiExportConfig configures static gemini generation
+type GeminiExportConfig struct {
 	Enabled   bool   `yaml:"enabled"`
 	OutputDir string `yaml:"output_dir"`
 	Host      string `yaml:"host"`
@@ -488,6 +498,28 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Export.Gopher.MaxItems == 0 {
 		cfg.Export.Gopher.MaxItems = defaults.Export.Gopher.MaxItems
+	}
+
+	// Apply Export.Gemini defaults
+	if cfg.Export.Gemini.OutputDir == "" {
+		cfg.Export.Gemini.OutputDir = defaults.Export.Gemini.OutputDir
+	}
+	if cfg.Export.Gemini.Host == "" {
+		host := cfg.Protocols.Gemini.Host
+		if host == "" {
+			host = defaults.Export.Gemini.Host
+		}
+		cfg.Export.Gemini.Host = host
+	}
+	if cfg.Export.Gemini.Port == 0 {
+		port := cfg.Protocols.Gemini.Port
+		if port == 0 {
+			port = defaults.Export.Gemini.Port
+		}
+		cfg.Export.Gemini.Port = port
+	}
+	if cfg.Export.Gemini.MaxItems == 0 {
+		cfg.Export.Gemini.MaxItems = defaults.Export.Gemini.MaxItems
 	}
 
 	// Apply Sync performance defaults
@@ -666,6 +698,13 @@ func Default() *Config {
 				OutputDir: "./export/gopher",
 				Host:      "localhost",
 				Port:      70,
+				MaxItems:  200,
+			},
+			Gemini: GeminiExportConfig{
+				Enabled:   false,
+				OutputDir: "./export/gemini",
+				Host:      "localhost",
+				Port:      1965,
 				MaxItems:  200,
 			},
 		},
@@ -935,6 +974,22 @@ func Validate(cfg *Config) error {
 		}
 		if cfg.Export.Gopher.MaxItems < 1 || cfg.Export.Gopher.MaxItems > 5000 {
 			return fmt.Errorf("export.gopher.max_items must be between 1 and 5000")
+		}
+	}
+
+	// Validate gemini export
+	if cfg.Export.Gemini.Enabled {
+		if cfg.Export.Gemini.OutputDir == "" {
+			return fmt.Errorf("export.gemini.output_dir is required when export.gemini.enabled is true")
+		}
+		if cfg.Export.Gemini.Host == "" {
+			return fmt.Errorf("export.gemini.host is required when export.gemini.enabled is true")
+		}
+		if cfg.Export.Gemini.Port < 1 || cfg.Export.Gemini.Port > 65535 {
+			return fmt.Errorf("export.gemini.port must be between 1 and 65535")
+		}
+		if cfg.Export.Gemini.MaxItems < 1 || cfg.Export.Gemini.MaxItems > 5000 {
+			return fmt.Errorf("export.gemini.max_items must be between 1 and 5000")
 		}
 	}
 

@@ -40,6 +40,12 @@ export:
     host: "gopher.example.com"
     port: 70
     max_items: 200
+  gemini:
+    enabled: false
+    output_dir: "./export/gemini"
+    host: "gemini.example.com"
+    port: 1965
+    max_items: 200
 
 relays:
   seeds:

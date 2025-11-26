@@ -138,6 +138,16 @@ func run(cfg *config.Config) error {
 		gopherExporter = exp
 	}
 
+	// Initialize static gemini exporter (optional)
+	var geminiExporter *exporter.GeminiExporter
+	if cfg.Export.Gemini.Enabled {
+		exp, err := exporter.NewGeminiExporter(cfg, st)
+		if err != nil {
+			return fmt.Errorf("failed to initialize gemini exporter: %w", err)
+		}
+		geminiExporter = exp
+	}
+
 	// Initialize sync engine if enabled
 	var syncEngine *sync.Engine
 	if cfg.Sync.Enabled {
@@ -153,6 +163,10 @@ func run(cfg *config.Config) error {
 		if gopherExporter != nil {
 			fmt.Println("  Enabling static gopher export on owner publishes...")
 			syncEngine.AddEventHandler(gopherExporter.HandleEvent)
+		}
+		if geminiExporter != nil {
+			fmt.Println("  Enabling static gemini export on owner publishes...")
+			syncEngine.AddEventHandler(geminiExporter.HandleEvent)
 		}
 
 		if err := syncEngine.Start(); err != nil {
