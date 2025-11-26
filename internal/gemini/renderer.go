@@ -235,23 +235,19 @@ func (r *Renderer) RenderNoteList(notes []*aggregates.EnrichedEvent, title, home
 	}
 
 	for i, note := range notes {
-		// Extract first line of content as summary
-		content := note.Event.Content
-		if len(content) > 100 {
-			content = content[:97] + "..."
-		}
-		firstLine := strings.Split(content, "\n")[0]
-
-		sb.WriteString(fmt.Sprintf("## %d. %s\n\n", i+1, firstLine))
-		sb.WriteString(fmt.Sprintf("By %s - %s\n", truncatePubkey(note.Event.PubKey), formatTimestamp(note.Event.CreatedAt)))
+		entryTitle := r.titleForEvent(note.Event)
+		ts := formatTimestamp(note.Event.CreatedAt)
+		linkText := fmt.Sprintf("%d. %s — %s", i+1, entryTitle, ts)
+		sb.WriteString(fmt.Sprintf("=> /note/%s %s\n", note.Event.ID, linkText))
 
 		if note.Aggregates != nil && note.Aggregates.HasInteractions() {
-			sb.WriteString(r.renderAggregates(note.Aggregates))
+			if agg := strings.TrimSpace(r.renderAggregates(note.Aggregates)); agg != "" {
+				sb.WriteString(fmt.Sprintf("   %s\n", agg))
+			}
 		}
-
-		sb.WriteString(fmt.Sprintf("\n=> /note/%s Read Full Note\n\n", note.Event.ID))
 	}
 
+	sb.WriteString("\n")
 	sb.WriteString(fmt.Sprintf("=> %s Back to Home\n", homeURL))
 
 	return r.applyHeadersFooters(sb.String(), pageName)
@@ -321,13 +317,34 @@ func formatTimestamp(ts nostr.Timestamp) string {
 		return "just now"
 	} else if diff < time.Hour {
 		mins := int(diff.Minutes())
+		if mins == 1 {
+			return "1 minute ago"
+		}
 		return fmt.Sprintf("%d minutes ago", mins)
 	} else if diff < 24*time.Hour {
 		hours := int(diff.Hours())
+		if hours == 1 {
+			return "1 hour ago"
+		}
 		return fmt.Sprintf("%d hours ago", hours)
 	} else if diff < 7*24*time.Hour {
 		days := int(diff.Hours() / 24)
+		if days == 1 {
+			return "1 day ago"
+		}
 		return fmt.Sprintf("%d days ago", days)
+	} else if diff < 30*24*time.Hour {
+		weeks := int(diff.Hours() / (24 * 7))
+		if weeks == 1 {
+			return "1 week ago"
+		}
+		return fmt.Sprintf("%d weeks ago", weeks)
+	} else if diff < 365*24*time.Hour {
+		weeks := int(diff.Hours() / (24 * 7))
+		if weeks == 1 {
+			return "1 week ago"
+		}
+		return fmt.Sprintf("%d weeks ago", weeks)
 	}
 
 	return t.Format("2006-01-02 15:04")
@@ -468,6 +485,38 @@ func wrapLineToWidth(text string, width int) []string {
 	}
 
 	return lines
+}
+
+func (r *Renderer) titleForEvent(event *nostr.Event) string {
+	// Prefer explicit title tag for long-form
+	if event.Kind == 30023 {
+		if title := titleFromTags(event); title != "" {
+			return title
+		}
+	}
+
+	content := strings.TrimSpace(event.Content)
+	if content == "" {
+		if len(event.ID) > 8 {
+			return fmt.Sprintf("Event %s...", event.ID[:8])
+		}
+		return fmt.Sprintf("Event %s", event.ID)
+	}
+
+	firstLine := strings.Split(content, "\n")[0]
+	if len(firstLine) > 120 {
+		return firstLine[:117] + "..."
+	}
+	return firstLine
+}
+
+func titleFromTags(event *nostr.Event) string {
+	for _, tag := range event.Tags {
+		if len(tag) >= 2 && tag[0] == "title" && tag[1] != "" {
+			return tag[1]
+		}
+	}
+	return ""
 }
 
 func (r *Renderer) renderThreadNode(sb *strings.Builder, node *aggregates.ThreadNode, depth int, focusID string, maxDepth int) {

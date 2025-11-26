@@ -299,13 +299,34 @@ func formatTimestamp(ts nostr.Timestamp) string {
 		return "just now"
 	} else if diff < time.Hour {
 		mins := int(diff.Minutes())
+		if mins == 1 {
+			return "1 minute ago"
+		}
 		return fmt.Sprintf("%d minutes ago", mins)
 	} else if diff < 24*time.Hour {
 		hours := int(diff.Hours())
+		if hours == 1 {
+			return "1 hour ago"
+		}
 		return fmt.Sprintf("%d hours ago", hours)
 	} else if diff < 7*24*time.Hour {
 		days := int(diff.Hours() / 24)
+		if days == 1 {
+			return "1 day ago"
+		}
 		return fmt.Sprintf("%d days ago", days)
+	} else if diff < 30*24*time.Hour {
+		weeks := int(diff.Hours() / (24 * 7))
+		if weeks == 1 {
+			return "1 week ago"
+		}
+		return fmt.Sprintf("%d weeks ago", weeks)
+	} else if diff < 365*24*time.Hour {
+		weeks := int(diff.Hours() / (24 * 7))
+		if weeks == 1 {
+			return "1 week ago"
+		}
+		return fmt.Sprintf("%d weeks ago", weeks)
 	}
 
 	return t.Format("2006-01-02 15:04")

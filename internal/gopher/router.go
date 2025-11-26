@@ -225,14 +225,7 @@ func (r *Router) handleOutbox(ctx context.Context, parts []string) []byte {
 	// Add note links with aggregates
 	if len(notes) > 0 {
 		for _, note := range notes {
-			// Extract first line for display
-			content := note.Event.Content
-			if len(content) > 60 {
-				content = content[:57] + "..."
-			}
-			firstLine := strings.Split(content, "\n")[0]
-
-			linkText := firstLine
+			linkText := eventTitle(note.Event)
 
 			// Add author and timestamp
 			gmap.AddInfo(fmt.Sprintf("   By %s - %s",
@@ -301,15 +294,7 @@ func (r *Router) handleNotes(ctx context.Context, parts []string) []byte {
 	// Add clickable note links with aggregates
 	if len(paginatedNotes) > 0 {
 		for _, note := range paginatedNotes {
-			// Extract first line for display
-			content := note.Event.Content
-			if len(content) > 60 {
-				content = content[:57] + "..."
-			}
-			firstLine := strings.Split(content, "\n")[0]
-
-			// Build link text without numbering (client adds numbers)
-			linkText := firstLine
+			linkText := eventTitle(note.Event)
 
 			// Add author and timestamp info line
 			gmap.AddInfo(fmt.Sprintf("   By %s - %s",
@@ -372,14 +357,7 @@ func (r *Router) handleArticles(ctx context.Context, parts []string) []byte {
 	// Add article links with aggregates
 	if len(paginatedArticles) > 0 {
 		for _, article := range paginatedArticles {
-			// Extract title or first line for display
-			content := article.Event.Content
-			if len(content) > 60 {
-				content = content[:57] + "..."
-			}
-			firstLine := strings.Split(content, "\n")[0]
-
-			linkText := firstLine
+			linkText := eventTitle(article.Event)
 
 			// Add author and timestamp
 			gmap.AddInfo(fmt.Sprintf("   By %s - %s",
@@ -441,14 +419,7 @@ func (r *Router) handleReplies(ctx context.Context, parts []string) []byte {
 	// Add reply links with aggregates
 	if len(paginatedReplies) > 0 {
 		for _, reply := range paginatedReplies {
-			// Extract first line for display
-			content := reply.Event.Content
-			if len(content) > 60 {
-				content = content[:57] + "..."
-			}
-			firstLine := strings.Split(content, "\n")[0]
-
-			linkText := firstLine
+			linkText := eventTitle(reply.Event)
 
 			// Add author and timestamp
 			gmap.AddInfo(fmt.Sprintf("   By %s - %s",
@@ -510,14 +481,7 @@ func (r *Router) handleMentions(ctx context.Context, parts []string) []byte {
 	// Add mention links with aggregates
 	if len(paginatedMentions) > 0 {
 		for _, mention := range paginatedMentions {
-			// Extract first line for display
-			content := mention.Event.Content
-			if len(content) > 60 {
-				content = content[:57] + "..."
-			}
-			firstLine := strings.Split(content, "\n")[0]
-
-			linkText := firstLine
+			linkText := eventTitle(mention.Event)
 
 			// Add author and timestamp
 			gmap.AddInfo(fmt.Sprintf("   By %s - %s",
@@ -792,6 +756,37 @@ func getSummary(content string, maxLen int) string {
 	return summary
 }
 
+func eventTitle(event *nostr.Event) string {
+	if event.Kind == 30023 {
+		if title := titleFromTags(event); title != "" {
+			return title
+		}
+	}
+
+	content := strings.TrimSpace(event.Content)
+	if content == "" {
+		if len(event.ID) > 8 {
+			return fmt.Sprintf("Event %s...", event.ID[:8])
+		}
+		return fmt.Sprintf("Event %s", event.ID)
+	}
+
+	firstLine := strings.Split(content, "\n")[0]
+	if len(firstLine) > 60 {
+		return firstLine[:57] + "..."
+	}
+	return firstLine
+}
+
+func titleFromTags(event *nostr.Event) string {
+	for _, tag := range event.Tags {
+		if len(tag) >= 2 && tag[0] == "title" && tag[1] != "" {
+			return tag[1]
+		}
+	}
+	return ""
+}
+
 // handleSection renders a custom section
 func (r *Router) handleSection(ctx context.Context, section *sections.Section, path string) []byte {
 	gmap := NewGophermap(r.host, r.port)
@@ -822,14 +817,7 @@ func (r *Router) handleSection(ctx context.Context, section *sections.Section, p
 	// Render events
 	if len(sectionPage.Events) > 0 {
 		for _, event := range sectionPage.Events {
-			// Extract first line for display
-			content := event.Content
-			if len(content) > 60 {
-				content = content[:57] + "..."
-			}
-			firstLine := strings.Split(content, "\n")[0]
-
-			linkText := firstLine
+			linkText := eventTitle(event)
 
 			// Add author and timestamp if configured
 			if section.ShowAuthors && section.ShowDates {
@@ -906,14 +894,7 @@ func (r *Router) handleSections(ctx context.Context, sections []*sections.Sectio
 		// Render events from section
 		if len(sectionPage.Events) > 0 {
 			for _, event := range sectionPage.Events {
-				// Extract first line for display
-				content := event.Content
-				if len(content) > 60 {
-					content = content[:57] + "..."
-				}
-				firstLine := strings.Split(content, "\n")[0]
-
-				linkText := firstLine
+				linkText := eventTitle(event)
 
 				// Add author and timestamp if configured
 				if section.ShowAuthors && section.ShowDates {
