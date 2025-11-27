@@ -40,7 +40,7 @@ The core functionality is implemented and working. Focus is now on polish, optim
 
 ```bash
 # Clone repository
-git clone https://github.com/sandwich/nophr.git
+git clone https://github.com/sandwichfarm/nophr.git
 cd nophr
 
 # Build
@@ -140,8 +140,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- Issues: https://github.com/sandwich/nophr/issues
-- Discussions: https://github.com/sandwich/nophr/discussions
+- Issues: https://github.com/sandwichfarm/nophr/issues
+- Discussions: https://github.com/sandwichfarm/nophr/discussions
 
 ---
 
