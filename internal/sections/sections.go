@@ -8,8 +8,8 @@ import (
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip19"
-	"github.com/sandwich/nophr/internal/aggregates"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/aggregates"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Section defines a content section with filtering and pagination

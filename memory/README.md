@@ -7,7 +7,7 @@ Overview
 - Inbox/Outbox model to aggregate replies, reactions, and zaps from Nostr.
 - Seed-relay bootstrap; dynamic relay discovery via NIP-65 (kind 10002).
 - Controlled synchronization scope (self/following/mutual/FOAF depth) with caps and allow/deny lists.
-- Embedded Khatru relay for event storage; SQLite or LMDB backend (no PostgreSQL).
+- Embedded Khatru relay for event storage; SQLite backend in this build (LMDB planned; no PostgreSQL).
 - Protocol-specific rendering: Gopher menus/text, Gemini gemtext, Finger user info.
 - Composable layouts: sections defined by filters; sensible defaults and archives.
 - Privacy and safety: env-only secrets, pruning, deny-lists, and diagnostics.

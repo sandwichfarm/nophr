@@ -105,7 +105,7 @@ docker pull sandwich/nophr:v1-alpine
 
 GitHub Container Registry
 ```bash
-docker pull ghcr.io/sandwich/nophr:latest
+docker pull ghcr.io/sandwichfarm/nophr:latest
 ```
 
 Tags:
@@ -413,8 +413,8 @@ dockers:
   - image_templates:
       - "sandwich/nophr:{{ .Version }}-amd64"
       - "sandwich/nophr:latest-amd64"
-      - "ghcr.io/sandwich/nophr:{{ .Version }}-amd64"
-      - "ghcr.io/sandwich/nophr:latest-amd64"
+      - "ghcr.io/sandwichfarm/nophr:{{ .Version }}-amd64"
+      - "ghcr.io/sandwichfarm/nophr:latest-amd64"
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
@@ -487,7 +487,7 @@ Quick Start Guide (in README.md):
    curl -fsSL https://get.nophr.io | sh
 
    # Or download from releases
-   wget https://github.com/sandwich/nophr/releases/download/v1.0.0/nophr_1.0.0_linux_amd64.tar.gz
+   wget https://github.com/sandwichfarm/nophr/releases/download/v1.0.0/nophr_1.0.0_linux_amd64.tar.gz
    tar xzf nophr_1.0.0_linux_amd64.tar.gz
    sudo mv nophr /usr/local/bin/
    ```

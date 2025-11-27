@@ -19,12 +19,12 @@ Gopher Server (RFC 1436)
   - Aggregates retrieved from cached aggregates table for performance
 - Text rendering: converts Nostr event content to wrapped plain text; shows metadata (author, timestamp, reactions/zaps).
 - Thread navigation: parent/replies linked via selectors; indented display.
-- Event detail: /event/<id> shows full event with:
+- Event detail: /note/<id> shows full event with:
   - Full event content (rendered as plain text)
   - Aggregate stats footer: reply count, reaction total (with breakdown by emoji/char if >1 type), cumulative zap sats
   - Threaded replies: Full thread tree with indentation, each reply showing its own aggregates
   - Navigation: Links to parent event, individual reply events
-  - NIP-19 entities resolved inline with display names and portal references appended (njump.me, nostr.at, nostr.eu)
+  - NIP-19 entities resolved inline with display names; portal URLs are used only as link targets, not printed verbatim
 - Archives: gophermap by year/month with links to individual posts.
 - Diagnostics: text file showing relay status, sync cursors, author counts.
 
@@ -52,17 +52,17 @@ Gemini Server (gemini://)
   - /archive - Time-based archives (by year/month)
   - /about - Owner profile (kind 0)
   - /diagnostics - System status and statistics
-- Per-section views: gemtext document with event links (=> /event/<id>).
+- Per-section views: gemtext document with event links (=> /note/<id>).
 - List item rendering: Each event link shows preview with aggregate stats (reply count, reaction total, cumulative zap sats).
   - Format: "X replies, Y reactions, Z sats" (inline with event preview)
   - Aggregates retrieved from cached aggregates table for performance
 - Event rendering: gemtext formatting with headings, quotes, preformatted blocks; reactions/zaps shown as text.
-- Event detail: gemini://host/event/<id> shows full event with:
+- Event detail: gemini://host/note/<id> shows full event with:
   - Full event content (rendered as gemtext)
   - Aggregate stats section: reply count, reaction total (with breakdown by emoji if >1 type), cumulative zap sats
   - Threaded replies: Full thread tree with links, each reply showing its own aggregates
   - Navigation: Links to parent event, individual reply events
-  - NIP-19 entities resolved inline with portal links appended (njump.me, nostr.at, nostr.eu) for quick off-site navigation
+  - NIP-19 entities resolved inline with display names; portal URLs are used only as link targets, not printed verbatim
 - Thread navigation: links to parent and child replies.
 - Input support: search queries, filter selection via Gemini input (status 10).
 - Archives: gemtext index by year/month with links.

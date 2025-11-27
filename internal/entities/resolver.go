@@ -9,7 +9,7 @@ import (
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip19"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Entity represents a resolved NIP-19 entity

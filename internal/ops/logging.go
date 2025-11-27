@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/config"
 )
 
 // Logger is a structured logger wrapper

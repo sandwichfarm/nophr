@@ -290,7 +290,7 @@ $ go test ./internal/sync/... -v -run TestNegentropy
 === RUN   TestNegentropyConfigHandling
 --- PASS: TestNegentropyConfigHandling (0.00s)
 PASS
-ok      github.com/sandwich/nophr/internal/sync 0.005s
+ok      github.com/sandwichfarm/nophr/internal/sync 0.005s
 ```
 
 ### Real-World Validation

@@ -469,25 +469,7 @@ failed to store event: MDB_MAP_FULL: Environment mapsize limit reached
 
 **Cause:** LMDB database reached `lmdb_max_size_mb` limit.
 
-**Fix:**
-
-**Increase max size:**
-```yaml
-storage:
-  lmdb_max_size_mb: 20480  # Increase to 20GB
-```
-
-**Restart nophr:**
-```bash
-sudo systemctl restart nophr
-```
-
-**Or prune old events:**
-```yaml
-sync:
-  retention:
-    keep_days: 180  # Keep only 6 months
-```
+LMDB is not supported in this build, so you will not see this error with current binaries. The configuration keys are reserved for future LMDB support.
 
 ---
 
@@ -686,9 +668,8 @@ caching:
 **Symptom:** nophr uses >1GB RAM.
 
 **Causes:**
-1. Large cache (if implemented)
+1. Large cache (if enabled)
 2. Many events in memory (query results)
-3. LMDB memory mapping
 
 **Fix:**
 
@@ -700,12 +681,6 @@ ps aux | grep nophr
 **Reduce query sizes:**
 - Not user-configurable yet
 - Future: add pagination limits
-
-**Switch to SQLite:**
-```yaml
-storage:
-  driver: "sqlite"  # Less memory than LMDB
-```
 
 ---
 

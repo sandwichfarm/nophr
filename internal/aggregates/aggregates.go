@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Manager coordinates all aggregate processing

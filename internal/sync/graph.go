@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Graph handles social graph computation from kind 3 events

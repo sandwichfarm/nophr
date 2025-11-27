@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Reconciler performs periodic recalculation of aggregates to fix drift

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/aggregates"
-	"github.com/sandwich/nophr/internal/sections"
+	"github.com/sandwichfarm/nophr/internal/aggregates"
+	"github.com/sandwichfarm/nophr/internal/sections"
 )
 
 const itemsPerPage = 9 // Gopher clients use single-digit hotkeys (1-9)

@@ -10,13 +10,13 @@ import (
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip19"
-	"github.com/sandwich/nophr/internal/aggregates"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/entities"
-	"github.com/sandwich/nophr/internal/markdown"
-	nostrclient "github.com/sandwich/nophr/internal/nostr"
-	"github.com/sandwich/nophr/internal/presentation"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/aggregates"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/entities"
+	"github.com/sandwichfarm/nophr/internal/markdown"
+	nostrclient "github.com/sandwichfarm/nophr/internal/nostr"
+	"github.com/sandwichfarm/nophr/internal/presentation"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Renderer renders Nostr events as Gopher text
@@ -53,9 +53,7 @@ func (r *Renderer) RenderNote(event *nostr.Event, agg *aggregates.EventAggregate
 	content := event.Content
 
 	// Resolve NIP-19 entities
-	ctx := context.Background()
-	content, foundEntities := r.resolver.ReplaceEntitiesWithMetadata(ctx, content, entities.GopherFormatter)
-	foundEntities = entities.DedupeEntities(foundEntities)
+	content = r.resolver.ReplaceEntities(context.Background(), content, entities.GopherFormatter)
 
 	// Apply max content length if configured
 	if r.config.Display.Limits.MaxContentLength > 0 && len(content) > r.config.Display.Limits.MaxContentLength {
@@ -65,14 +63,6 @@ func (r *Renderer) RenderNote(event *nostr.Event, agg *aggregates.EventAggregate
 	rendered, _ := r.parser.RenderGopher([]byte(content), r.gopherRenderOptions())
 	rendered = clampWidth(rendered, r.config.Rendering.Gopher.MaxLineLength)
 	sb.WriteString(rendered)
-
-	if len(foundEntities) > 0 {
-		sb.WriteString("\n")
-		sb.WriteString(r.applyConfigSeparator("section"))
-		sb.WriteString("\n")
-		sb.WriteString(r.renderPortalLinks(foundEntities))
-		sb.WriteString("\n")
-	}
 
 	// Aggregates footer - only show if configured for detail view
 	if r.config.Display.Detail.ShowInteractions && agg != nil && agg.HasInteractions() {
@@ -427,7 +417,7 @@ func (r *Renderer) renderPortalLinks(resolved []*entities.Entity) string {
 		name := displayNameWithAt(entity)
 
 		markers := make([]string, 0)
-		for _, portal := range portalBases() {
+		for _, portal := range r.portalBases() {
 			markers = append(markers, fmt.Sprintf("[%d]", refIdx))
 			refLines = append(refLines, fmt.Sprintf("[%d] %s/%s", refIdx, portal, nip19))
 			refIdx++
@@ -512,13 +502,7 @@ func (r *Renderer) renderThreadNode(sb *strings.Builder, node *aggregates.Thread
 	sb.WriteString(line)
 	sb.WriteString("\n")
 
-	if portals := r.portalLinks(node.Event); len(portals) > 0 {
-		for _, p := range portals {
-			sb.WriteString(fmt.Sprintf("%s  portal: %s\n", prefix, p))
-		}
-	} else {
-		sb.WriteString(fmt.Sprintf("%s  selector: /note/%s\n", prefix, node.Event.ID))
-	}
+	sb.WriteString(fmt.Sprintf("%s  selector: /note/%s\n", prefix, node.Event.ID))
 
 	for _, child := range node.Children {
 		r.renderThreadNode(sb, child, depth+1, focusID, maxDepth)
@@ -559,7 +543,7 @@ func (r *Renderer) portalLinks(event *nostr.Event) []string {
 		return nil
 	}
 
-	portals := portalBases()
+	portals := r.portalBases()
 	links := make([]string, 0, len(portals))
 	for _, base := range portals {
 		links = append(links, fmt.Sprintf("%s/%s", base, code))
@@ -717,6 +701,9 @@ func displayNameWithAt(entity *entities.Entity) string {
 	return name
 }
 
-func portalBases() []string {
+func (r *Renderer) portalBases() []string {
+	if len(r.config.Rendering.Portals) > 0 {
+		return r.config.Rendering.Portals
+	}
 	return []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
 }

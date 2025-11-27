@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 func setupTestCursorManager(t *testing.T) (*CursorManager, *storage.Storage, func()) {

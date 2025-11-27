@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // NIP11RelayInfo represents relay information document (NIP-11)

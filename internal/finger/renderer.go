@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/markdown"
-	nostrclient "github.com/sandwich/nophr/internal/nostr"
+	"github.com/sandwichfarm/nophr/internal/markdown"
+	nostrclient "github.com/sandwichfarm/nophr/internal/nostr"
 )
 
 // Renderer renders Finger protocol responses

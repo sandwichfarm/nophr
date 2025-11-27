@@ -10,7 +10,7 @@ nophr uses [Khatru](https://github.com/fiatjaf/khatru) as an embedded Nostr rela
 
 **Key Concepts:**
 - **Khatru**: Embedded Nostr relay (library, not separate service)
-- **eventstore**: Pluggable database backend (SQLite or LMDB)
+- **eventstore**: Pluggable database backend (this build uses SQLite; LMDB and other backends are conceptual only)
 - **Custom tables**: nophr-specific data (relay hints, social graph, sync state, aggregates)
 
 **Architecture:**
@@ -26,7 +26,7 @@ nophr uses [Khatru](https://github.com/fiatjaf/khatru) as an embedded Nostr rela
        │ eventstore interface
        ↓
 ┌─────────────────────┐
-│  SQLite or LMDB     │  ← Database files
+│  SQLite             │  ← Database file (LMDB planned, not available in this build)
 └─────────────────────┘
 ```
 
@@ -34,7 +34,7 @@ nophr uses [Khatru](https://github.com/fiatjaf/khatru) as an embedded Nostr rela
 
 ## Database Backends
 
-nophr uses Khatru's [eventstore](https://github.com/fiatjaf/eventstore) plugin system. This build supports SQLite.
+nophr uses Khatru's [eventstore](https://github.com/fiatjaf/eventstore) plugin system. This build supports SQLite. LMDB and other backends discussed below describe planned or hypothetical configurations and cannot be used with current binaries.
 
 ### SQLite (Default)
 
@@ -67,9 +67,9 @@ storage:
 - <100K events
 - Simple setup
 
-### LMDB (Alternative)
+### LMDB (Alternative, not available in this build)
 
-Note: LMDB is not supported in this build.
+LMDB is not supported in this build. The configuration options exist for future compatibility, but selecting `driver: "lmdb"` currently fails with a clear error and storage does not initialize.
 
 **Characteristics:**
 - Directory with data files
@@ -93,7 +93,7 @@ storage:
 └── lock.mdb      # Lock file
 ```
 
-**Best for:**
+**Best for (when implemented):**
 - High-volume event syncing
 - >100K events
 - Need for high write throughput
@@ -112,7 +112,7 @@ storage:
 
 ---
 
-## Comparison: SQLite vs LMDB
+## Comparison: SQLite vs LMDB (design)
 
 | Feature | SQLite | LMDB |
 |---------|--------|------|
@@ -127,12 +127,10 @@ storage:
 | **Portability** | High (single file) | Medium (directory) |
 | **Best use case** | Personal, <100K events | High-volume, streaming |
 
-**Recommendation:**
-- **Start with SQLite** - simpler, sufficient for most users
-- **Switch to LMDB** if you:
-  - Sync >100K events
-  - Need high write throughput
-  - Run background reconcilers frequently
+**Recommendation (for this build):**
+- **Use SQLite** – it is the only supported backend.
+
+LMDB details in this guide describe the intended behavior for future builds; they are not active in current releases.
 
 ---
 
@@ -167,7 +165,7 @@ Khatru provides the core Nostr relay functionality:
 - Index management
 - Signature verification
 
-**Implementation:** `internal/storage/storage.go`, `internal/storage/sqlite.go`, `internal/storage/lmdb.go`
+**Implementation:** `internal/storage/storage.go`, `internal/storage/sqlite.go`, `internal/storage/lmdb.go` (LMDB is stubbed and returns a not-implemented error in this build)
 
 ---
 
@@ -345,7 +343,9 @@ cp ./data/nophr.db ./backups/nophr-$(date +%Y%m%d).db
 cp ./backups/nophr-20251024.db ./data/nophr.db
 ```
 
-### LMDB Backups
+### LMDB Backups (future)
+
+LMDB is not supported in this build. When LMDB support is added, backups will look similar to:
 
 **Cold backup (nophr stopped):**
 ```bash
@@ -422,8 +422,6 @@ sqlite3 ./data/nophr.db "VACUUM;"
 du -h ./data/nophr.db
 ```
 
-LMDB is not supported in this build.
-
 **Check event count:**
 ```bash
 sqlite3 ./data/nophr.db "SELECT COUNT(*) FROM events;"
@@ -433,7 +431,7 @@ sqlite3 ./data/nophr.db "SELECT COUNT(*) FROM events;"
 
 ## Switching Backends
 
-Only SQLite is supported in this build.
+Only SQLite is supported in this build. Selecting any other `storage.driver` will cause startup to fail.
 
 ---
 
@@ -450,9 +448,9 @@ mkdir -p ./data
 
 ### "LMDB: database full"
 
-**Cause:** LMDB reached `lmdb_max_size_mb` limit.
+LMDB is not supported in this build. If you configure `driver: "lmdb"`, nophr will fail to start before this error could occur. The following settings are reserved for future LMDB support:
 
-**Fix:** Increase max size in config:
+**Planned fix:** Increase max size in config:
 ```yaml
 storage:
   lmdb_max_size_mb: 20480  # Increase to 20GB
@@ -499,15 +497,9 @@ PRAGMA cache_size = -64000;     -- 64MB cache
 CREATE INDEX idx_events_kind_created ON events(kind, created_at DESC);
 ```
 
-### LMDB Optimizations
+### LMDB Optimizations (future)
 
-**Max size tuning:**
-- Set 2-3x expected data size
-- Larger = more memory mapped, faster
-- Don't set unnecessarily huge (wastes virtual address space)
-
-**No-sync mode (dangerous, faster):**
-LMDB can run with `MDB_NOSYNC` for speed. Not recommended for nophr (data integrity matters).
+LMDB-related tuning (max size, sync modes, etc.) applies only once LMDB support is implemented. For this build, these notes are informational only.
 
 ---
 
@@ -560,7 +552,7 @@ Khatru supports custom eventstore backends. See [eventstore documentation](https
 - LevelDB
 - PostgreSQL (custom implementation)
 
-**Currently supported:** SQLite, LMDB
+**Currently supported in this build:** SQLite (LMDB and other backends are not yet supported)
 
 ---
 

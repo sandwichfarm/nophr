@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Discovery handles relay discovery using seed relays and NIP-65

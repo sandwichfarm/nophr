@@ -231,16 +231,16 @@ GetInboxRelays():
 ```bash
 $ go test ./internal/sync/... -v
 PASS
-ok      github.com/sandwich/nophr/internal/sync 0.048s
+ok      github.com/sandwichfarm/nophr/internal/sync 0.048s
 ```
 
 ### Integration Tests
 ✅ **All package tests passing**
 ```bash
 $ go test ./...
-ok      github.com/sandwich/nophr/internal/aggregates   0.010s
-ok      github.com/sandwich/nophr/internal/sync         0.041s
-ok      github.com/sandwich/nophr/test                  6.639s
+ok      github.com/sandwichfarm/nophr/internal/aggregates   0.010s
+ok      github.com/sandwichfarm/nophr/internal/sync         0.041s
+ok      github.com/sandwichfarm/nophr/test                  6.639s
 ... (all packages pass)
 ```
 

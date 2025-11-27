@@ -12,7 +12,7 @@ nophr is a personal gateway that serves your Nostr content via legacy internet p
 - **Inbox/Outbox model** - aggregates replies, reactions, and zaps from Nostr
 - **Smart relay discovery** - uses NIP-65 (kind 10002) for dynamic relay hints
 - **Controlled sync scope** - sync self/following/mutual/FOAF with caps and deny lists
-- **Embedded storage** - uses Khatru relay with SQLite or LMDB backend
+- **Embedded storage** - uses Khatru relay with SQLite backend (LMDB planned; not yet implemented in this build)
 - **Protocol-specific rendering** - gopher menus, gemini gemtext, finger responses
 
 ## Status
@@ -108,7 +108,7 @@ nophr/
 
 nophr follows a config-first philosophy with clear separation of concerns:
 
-- **Storage Layer** - Khatru relay with SQLite/LMDB
+- **Storage Layer** - Khatru relay with SQLite (LMDB planned; not yet implemented in this build)
 - **Sync Engine** - Discovers and syncs from Nostr relays
 - **Protocol Servers** - Gopher (port 70), Gemini (port 1965), Finger (port 79)
 - **Rendering** - Protocol-specific content transformation

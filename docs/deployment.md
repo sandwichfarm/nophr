@@ -1201,9 +1201,9 @@ sqlite3 /opt/nophr/data/nophr.db "PRAGMA journal_mode=WAL;"
 0 3 * * 0 sqlite3 /opt/nophr/data/nophr.db "VACUUM;"
 ```
 
-### LMDB Max Size
+### LMDB Max Size (future)
 
-For high-volume deployments:
+LMDB is not supported in this build. When LMDB support is added, high-volume deployments will need to set `lmdb_max_size_mb` appropriately, for example:
 
 ```yaml
 storage:

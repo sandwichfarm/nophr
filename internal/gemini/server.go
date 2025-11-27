@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sandwich/nophr/internal/aggregates"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/sections"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/aggregates"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/sections"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // Server implements a Gemini protocol server

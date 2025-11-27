@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sandwich/nophr/internal/aggregates"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/aggregates"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 func TestGeminiProtocol(t *testing.T) {

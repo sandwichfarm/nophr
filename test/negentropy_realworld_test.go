@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
-	internalnostr "github.com/sandwich/nophr/internal/nostr"
-	"github.com/sandwich/nophr/internal/storage"
-	"github.com/sandwich/nophr/internal/sync"
+	"github.com/sandwichfarm/nophr/internal/config"
+	internalnostr "github.com/sandwichfarm/nophr/internal/nostr"
+	"github.com/sandwichfarm/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/sync"
 )
 
 // TestNegentropyWithRealRelays tests negentropy sync against production relays

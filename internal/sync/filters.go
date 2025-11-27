@@ -2,7 +2,7 @@ package sync
 
 import (
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/config"
 )
 
 // FilterBuilder creates Nostr filters based on sync configuration

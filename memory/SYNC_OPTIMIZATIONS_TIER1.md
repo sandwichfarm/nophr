@@ -112,7 +112,7 @@ if eventsInLastSync == 0 {
 ```bash
 go test ./internal/sync/...
 PASS
-ok      github.com/sandwich/nophr/internal/sync    0.026s
+ok      github.com/sandwichfarm/nophr/internal/sync    0.026s
 ```
 
 **Build**: ✅ Clean build

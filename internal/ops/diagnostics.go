@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/sandwich/nophr/internal/storage"
-	"github.com/sandwich/nophr/internal/sync"
+	"github.com/sandwichfarm/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/sync"
 )
 
 // SystemStats contains overall system statistics

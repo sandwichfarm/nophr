@@ -231,9 +231,10 @@ type Storage struct {
 
 // Rendering contains protocol-specific rendering options
 type Rendering struct {
-	Gopher GopherRendering `yaml:"gopher"`
-	Gemini GeminiRendering `yaml:"gemini"`
-	Finger FingerRendering `yaml:"finger"`
+	Gopher  GopherRendering `yaml:"gopher"`
+	Gemini  GeminiRendering `yaml:"gemini"`
+	Finger  FingerRendering `yaml:"finger"`
+	Portals []string        `yaml:"portals"`
 }
 
 // GopherRendering contains Gopher rendering options
@@ -724,6 +725,11 @@ func Default() *Config {
 				PlanSource:       "kind_0",
 				RecentNotesCount: 5,
 			},
+			Portals: []string{
+				"https://njump.me",
+				"https://nostr.at",
+				"https://nostr.eu",
+			},
 		},
 		Caching: Caching{
 			Enabled:  true,
@@ -1028,7 +1034,7 @@ type SectionFilterConfig struct {
 	Since   string              `yaml:"since"` // RFC3339 or duration like "-24h"
 	Until   string              `yaml:"until"` // RFC3339 or duration
 	Search  string              `yaml:"search"`
-	Scope   string              `yaml:"scope"` // self, following, mutual, foaf, all
+	Scope   string              `yaml:"scope"`    // self, following, mutual, foaf, all
 	IsReply *bool               `yaml:"is_reply"` // true = only replies, false = only roots
 }
 

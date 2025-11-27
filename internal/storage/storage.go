@@ -7,7 +7,7 @@ import (
 
 	"github.com/fiatjaf/khatru"
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/config"
 )
 
 // Storage provides the main storage interface for nophr

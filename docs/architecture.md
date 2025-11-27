@@ -49,7 +49,7 @@ nophr is a **personal Nostr gateway** that serves content via legacy internet pr
                           │ eventstore interface
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│           Database Backend (SQLite or LMDB)                 │
+│           Database Backend (SQLite)                         │
 │  - Events (managed by Khatru)                               │
 │  - Custom tables:                                           │
 │    • relay_hints                                            │
@@ -139,12 +139,11 @@ Validate() → Check required fields, formats
 │  (storage.go)           │
 └───────┬─────────────────┘
         │
-    ┌───┴───┐
-    ↓       ↓
-┌──────┐ ┌──────┐
-│SQLite│ │ LMDB │
-└──────┘ └──────┘
-    ↓       ↓
+        ↓
+┌──────┐
+│SQLite│
+└──────┘
+    ↓
 ┌──────────────┐
 │   Khatru     │
 │ (eventstore) │
@@ -154,7 +153,7 @@ Validate() → Check required fields, formats
 **Key files:**
 - `storage.go` - Interface, factory
 - `sqlite.go` - SQLite implementation
-- `lmdb.go` - LMDB implementation
+- `lmdb.go` - LMDB implementation stub (returns not-implemented error in this build)
 - `migrations.go` - Schema creation
 - `relay_hints.go`, `graph_nodes.go`, `sync_state.go`, `aggregates.go` - Custom tables
 
@@ -1117,7 +1116,7 @@ nophr/
 
 **eventstore** - Database adapters
 - https://github.com/fiatjaf/eventstore
-- SQLite and LMDB implementations
+- SQLite and LMDB implementations (nophr uses SQLite in this build)
 - Used by Khatru
 
 **go-nostr** - Nostr protocol
@@ -1375,7 +1374,6 @@ Use built-in rate limiting (see security settings), and optionally firewall rule
 **Disk:**
 - SQLite database: ~1KB per event
 - 100K events: ~100MB
-- LMDB: similar, but pre-allocated
 
 **CPU:**
 - Idle: <1%
@@ -1387,7 +1385,7 @@ Use built-in rate limiting (see security settings), and optionally firewall rule
 **Single-tenant design:**
 - Optimized for one owner
 - Supports thousands of followed users (with caps)
-- Handles millions of events (with LMDB)
+- Designed to scale to millions of events with appropriate backend tuning
 
 **Concurrent connections:**
 - Gopher: 1000+ (lightweight, <10KB per connection)
@@ -1431,7 +1429,7 @@ Use built-in rate limiting (see security settings), and optionally firewall rule
 
 **Alternatives considered:**
 - PostgreSQL (too heavy for single-tenant)
-- LMDB (better for high-volume, but more complex)
+- LMDB (better for high-volume, but more complex; not yet supported in this build)
 - Badger/LevelDB (less mature in Nostr ecosystem)
 
 **SQLite wins for default:**
@@ -1439,11 +1437,6 @@ Use built-in rate limiting (see security settings), and optionally firewall rule
 - Single file (easy backups)
 - Sufficient for most users
 - Mature, stable
-
-**LMDB available for:**
-- High-volume use cases
-- Better write performance
-- Millions of events
 
 ### Why Embedded?
 

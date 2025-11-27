@@ -534,7 +534,7 @@ sync:
 
 ## inbox
 
-Inbox aggregation of replies, reactions, and zaps.
+Inbox aggregation of replies, reactions, and zaps (legacy / compatibility).
 
 ```yaml
 inbox:
@@ -550,18 +550,18 @@ inbox:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `include_replies` | bool | `true` | Show replies to your notes |
-| `include_reactions` | bool | `true` | Show kind 7 reactions |
-| `include_zaps` | bool | `true` | Show kind 9735 zaps |
+| `include_replies` | bool | `true` | Show replies to your notes in legacy inbox views |
+| `include_reactions` | bool | `true` | Show kind 7 reactions in legacy inbox views |
+| `include_zaps` | bool | `true` | Show kind 9735 zaps in legacy inbox views |
 | `group_by_thread` | bool | `true` | Group inbox by thread root |
 | `collapse_reposts` | bool | `true` | Collapse multiple reposts |
 | `noise_filters.min_zap_sats` | int | `1` | Minimum zap amount to show |
 | `noise_filters.allowed_reaction_chars` | string[] | `["+"]` | Filter reactions (e.g., only "+") |
 
-**Noise filtering:**
-- Filter out tiny zaps: `min_zap_sats: 100` (0.1 sat minimum)
-- Allow only specific reactions: `allowed_reaction_chars: ["+", "❤️", "🔥"]`
-- Prevent spam/unwanted reactions
+**Usage notes:**
+- Core navigation now uses `/notes`, `/articles`, `/replies`, and `/mentions`, plus configurable sections.
+- The `inbox` section is retained for backward compatibility with older configurations and may be removed in a future major release.
+- Noise filtering still applies when legacy inbox views are enabled.
 
  
 
@@ -600,9 +600,9 @@ storage:
 | Best for | Personal use | High-volume streaming |
 
 **Recommendations:**
-- **Start with SQLite** - simpler, sufficient for most users
-- LMDB is not supported in this build
-- Both use Khatru eventstore interface (see [storage.md](storage.md))
+- **Use SQLite** – it is the only supported backend in this build.
+- LMDB options are present for future compatibility but are not usable with current binaries.
+- Both backends share the same Khatru eventstore interface conceptually (see [storage.md](storage.md)), but this build initializes SQLite only.
 
  
 
@@ -626,6 +626,10 @@ rendering:
   finger:
     plan_source: "kind_0"
     recent_notes_count: 5
+  portals:
+    - "https://njump.me"
+    - "https://nostr.at"
+    - "https://nostr.eu"
 ```
 
 ### rendering.gopher
@@ -665,6 +669,22 @@ rendering:
 **Plan source:**
 - `kind_0`: Use profile "about" field as .plan
 - `kind_1`: Use most recent note as .plan
+
+### rendering.portals
+
+Portal base URLs used when generating NIP-19 (nevent/naddr) links for external navigation.
+
+```yaml
+rendering:
+  portals:
+    - "https://njump.me"
+    - "https://nostr.at"
+    - "https://nostr.eu"
+```
+
+**Notes:**
+- If omitted, defaults to `https://njump.me`, `https://nostr.at`, and `https://nostr.eu`.
+- These URLs are used as link targets; nophr does not print long portal URLs in note content, only uses them behind link labels.
 
  
 

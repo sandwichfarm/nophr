@@ -146,7 +146,7 @@ sync:
 ```bash
 go test ./internal/sync/...
 PASS
-ok      github.com/sandwich/nophr/internal/sync    0.029s
+ok      github.com/sandwichfarm/nophr/internal/sync    0.029s
 ```
 
 **Build**: ✅ Clean build

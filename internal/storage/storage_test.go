@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/config"
 )
 
 func setupTestStorage(t *testing.T) (*Storage, func()) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/config"
 )
 
 // LoadFromConfig converts config.SectionConfig entries to Section instances

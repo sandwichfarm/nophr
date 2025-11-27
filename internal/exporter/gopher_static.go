@@ -12,9 +12,9 @@ import (
 
 	"github.com/nbd-wtf/go-nostr"
 	"github.com/nbd-wtf/go-nostr/nip19"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/gopher"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/gopher"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // GopherExporter writes static gopher holes for owner content.

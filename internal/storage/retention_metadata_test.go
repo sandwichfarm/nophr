@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sandwich/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/config"
 )
 
 func TestRetentionMetadataMigration(t *testing.T) {

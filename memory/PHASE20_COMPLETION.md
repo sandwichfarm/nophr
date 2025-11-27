@@ -217,7 +217,7 @@ Events are assigned scores for cap enforcement prioritization:
 === RUN   TestCatchAllRule
 --- PASS: TestCatchAllRule (0.00s)
 PASS
-ok  	github.com/sandwich/nophr/internal/retention	0.002s
+ok  	github.com/sandwichfarm/nophr/internal/retention	0.002s
 ```
 
 ## Files Modified

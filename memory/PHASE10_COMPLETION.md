@@ -196,7 +196,7 @@ warmer.WarmProfile(ctx, pubkey, "gemini", content, 10*time.Minute)
 **Test Results**:
 ```bash
 $ go test ./internal/cache/...
-ok      github.com/sandwich/nophr/internal/cache    0.5s
+ok      github.com/sandwichfarm/nophr/internal/cache    0.5s
 ```
 
 ## File Structure

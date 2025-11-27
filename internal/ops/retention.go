@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/retention"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/retention"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 // RetentionManager handles data retention and pruning

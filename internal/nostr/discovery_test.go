@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sandwich/nophr/internal/config"
-	"github.com/sandwich/nophr/internal/storage"
+	"github.com/sandwichfarm/nophr/internal/config"
+	"github.com/sandwichfarm/nophr/internal/storage"
 )
 
 func setupTestDiscovery(t *testing.T) (*Discovery, *storage.Storage, func()) {
