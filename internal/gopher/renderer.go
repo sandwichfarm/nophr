@@ -415,18 +415,34 @@ func (r *Renderer) renderPortalLinks(resolved []*entities.Entity) string {
 		return ""
 	}
 
-	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
-	lines := []string{"Portal links", strings.Repeat("-", 70)}
+	var out []string
+	out = append(out, "Portal links")
+	out = append(out, strings.Repeat("-", 70))
+
+	refLines := make([]string, 0)
+	refIdx := 1
 
 	for _, entity := range resolved {
 		nip19 := strings.TrimPrefix(entity.OriginalText, "nostr:")
-		lines = append(lines, fmt.Sprintf("- %s (%s)", entity.DisplayName, entity.Type))
-		for _, portal := range portals {
-			lines = append(lines, fmt.Sprintf("  %s/%s", portal, nip19))
+		name := displayNameWithAt(entity)
+
+		markers := make([]string, 0)
+		for _, portal := range portalBases() {
+			markers = append(markers, fmt.Sprintf("[%d]", refIdx))
+			refLines = append(refLines, fmt.Sprintf("[%d] %s/%s", refIdx, portal, nip19))
+			refIdx++
 		}
+
+		out = append(out, fmt.Sprintf("- %s (%s) %s", name, entity.Type, strings.Join(markers, " ")))
 	}
 
-	return strings.Join(lines, "\n")
+	if len(refLines) > 0 {
+		out = append(out, "")
+		out = append(out, "References:")
+		out = append(out, refLines...)
+	}
+
+	return strings.Join(out, "\n")
 }
 
 func clampWidth(content string, width int) string {
@@ -543,7 +559,7 @@ func (r *Renderer) portalLinks(event *nostr.Event) []string {
 		return nil
 	}
 
-	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
+	portals := portalBases()
 	links := make([]string, 0, len(portals))
 	for _, base := range portals {
 		links = append(links, fmt.Sprintf("%s/%s", base, code))
@@ -628,9 +644,13 @@ func (r *Renderer) renderThreadNodeMap(gmap *Gophermap, node *aggregates.ThreadN
 	gmap.AddInfo(line)
 
 	if portals := r.portalLinks(node.Event); len(portals) > 0 {
-		for _, p := range portals {
-			r.addPortalItem(gmap, fmt.Sprintf("%s  portal", prefix), p)
+		markers := make([]string, 0, len(portals))
+		for i, p := range portals {
+			mark := fmt.Sprintf("[%d]", i+1)
+			markers = append(markers, mark)
+			r.addPortalItem(gmap, fmt.Sprintf("%s  portal %s", prefix, mark), p)
 		}
+		gmap.AddInfo(fmt.Sprintf("%s  portals %s", prefix, strings.Join(markers, " ")))
 	} else {
 		gmap.AddTextFile(fmt.Sprintf("%s  open note", prefix), fmt.Sprintf("/note/%s", node.Event.ID))
 	}
@@ -682,4 +702,21 @@ func parseURLHostPort(raw string) (string, int) {
 	}
 
 	return host, port
+}
+
+func displayNameWithAt(entity *entities.Entity) string {
+	name := entity.DisplayName
+	if name == "" {
+		return name
+	}
+	if entity.Type == "npub" || entity.Type == "nprofile" {
+		if !strings.HasPrefix(name, "@") {
+			return "@" + name
+		}
+	}
+	return name
+}
+
+func portalBases() []string {
+	return []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
 }

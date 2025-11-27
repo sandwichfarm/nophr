@@ -58,7 +58,7 @@ rendering:
 
 **Conventions:**
 - 70 characters per line (classic terminal width)
-- Plain ASCII text (no ANSI colors, no Unicode)
+- Primarily ASCII text; Nostr content may include UTF‑8 characters or emoji
 - Minimal formatting
 
 ### Selectors
@@ -74,11 +74,9 @@ Gopher uses "selectors" (paths) to navigate content:
 | `/mentions` | Posts mentioning you |
 | `/search` | Search interface |
 | `/search/<query>` | Search results (NIP-50) |
-| `/archive` | Time-based archives (by year/month) |
-| `/event/<id>` | Individual event detail |
+| `/note/<id>` | Individual note/article detail |
 | `/thread/<id>` | Thread view |
 | `/diagnostics` | System status and statistics |
-| `/about` | Your profile (kind 0) |
 | `/<custom>` | Custom sections (configured in `sections` config) |
 
 **Legacy selectors** (aliases for compatibility):
@@ -145,13 +143,13 @@ i	fake	localhost	70
 1Replies (8 items)	/replies	localhost	70
 1Mentions (15 items)	/mentions	localhost	70
 1Search	/search	localhost	70
-1Archive	/archive	localhost	70
+1Archive	/archive	localhost	70   # Example custom section (if configured)
 iDiagnostics	/diagnostics	localhost	70
 .
 
 $ echo "/notes" | nc localhost 70
-1[2025-10-24] Just published my Gopher server!	/event/abc123	localhost	70
-1[2025-10-23] Testing markdown conversion	/event/def456	localhost	70
+1[2025-10-24] Just published my Gopher server!	/note/abc123	localhost	70
+1[2025-10-23] Testing markdown conversion	/note/def456	localhost	70
 ...
 
 $ echo "/search/nostr+protocol" | nc localhost 70
@@ -240,8 +238,7 @@ rendering:
 | `/replies` | Replies to your content |
 | `/mentions` | Posts mentioning you |
 | `/search` | Search interface (prompts for query) |
-| `/archive` | Time-based archives (by year/month) |
-| `/event/<id>` | Individual event detail |
+| `/note/<id>` | Individual note/article detail |
 | `/thread/<id>` | Thread view |
 | `/diagnostics` | System status and statistics |
 | `/about` | Your profile (kind 0) |
@@ -329,8 +326,8 @@ Notes, articles, and interactions from Nostr
 
 ## Notes
 
-=> /event/abc123 [2025-10-24] Just published my Gopher server!
-=> /event/def456 [2025-10-23] Testing markdown conversion
+=> /note/abc123 [2025-10-24] Just published my Gopher server!
+=> /note/def456 [2025-10-23] Testing markdown conversion
 ...
 
 # Click /search

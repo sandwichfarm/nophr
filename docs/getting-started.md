@@ -36,7 +36,7 @@ This will:
 
 ```bash
 # Clone the repository
-git clone https://github.com/sandwich/nophr.git
+git clone https://github.com/sandwichfarm/nophr.git
 cd nophr
 
 # Build the binary
@@ -273,8 +273,8 @@ For more troubleshooting, see [troubleshooting.md](troubleshooting.md).
 ## Getting Help
 
 - **Documentation:** Browse docs/ for detailed guides
-- **Issues:** Report bugs at https://github.com/sandwich/nophr/issues
-- **Discussions:** Ask questions at https://github.com/sandwich/nophr/discussions
+- **Issues:** Report bugs at https://github.com/sandwichfarm/nophr/issues
+- **Discussions:** Ask questions at https://github.com/sandwichfarm/nophr/discussions
 - **Design Docs:** See memory/ for technical design decisions
 
 ## Contributing

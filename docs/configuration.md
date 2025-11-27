@@ -679,9 +679,6 @@ caching:
   enabled: true
   engine: "memory"  # or "redis"
   redis_url: ""  # Set via NOPHR_REDIS_URL env var
-  max_size_mb: 100  # Memory cache size limit
-  default_ttl_seconds: 300
-  cleanup_interval_seconds: 60
 
   ttl:
     sections:
@@ -709,9 +706,6 @@ caching:
 | `enabled` | bool | `true` | Master switch for caching |
 | `engine` | string | `memory` | Cache backend (`memory` or `redis`) |
 | `redis_url` | string | `""` | Redis URL (via `NOPHR_REDIS_URL` env) |
-| `max_size_mb` | int | `100` | Memory cache size limit (MB) |
-| `default_ttl_seconds` | int | `300` | Default cache TTL (5 minutes) |
-| `cleanup_interval_seconds` | int | `60` | Expired entry cleanup interval |
 | `ttl.sections.*` | int | varies | Section cache TTLs (seconds) |
 | `ttl.render.*` | int | varies | Render cache TTLs (seconds) |
 | `aggregates.enabled` | bool | `true` | Cache aggregate computations |
@@ -982,6 +976,7 @@ filters:
   until: "2025-01-01T00:00:00Z"        # RFC3339 timestamp or "-1d" duration
   search: "keyword"                    # NIP-50 search term
   scope: "following"                   # self, following, mutual, foaf, all
+  is_reply: true                       # true = only replies, false = only roots
 ```
 
 **MoreLink structure:**

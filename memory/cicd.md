@@ -196,7 +196,7 @@ scripts/install.sh (user-facing one-line installer)
 set -euo pipefail
 
 # Configuration
-REPO="sandwich/nophr"
+REPO="sandwichfarm/nophr"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/nophr}"
 
@@ -797,7 +797,7 @@ release:
 
     Release of nophr {{.Version}}
   footer: |
-    **Full Changelog**: https://github.com/sandwich/nophr/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/sandwichfarm/nophr/compare/{{ .PreviousTag }}...{{ .Tag }}
 
 brews:
   - name: nophr
@@ -806,7 +806,7 @@ brews:
       name: homebrew-nophr
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     directory: Formula
-    homepage: https://github.com/sandwich/nophr
+    homepage: https://github.com/sandwichfarm/nophr
     description: "Nostr to Gopher/Gemini/Finger gateway"
     license: MIT
     test: |
@@ -818,7 +818,7 @@ brews:
 nfpms:
   - id: nophr-packages
     package_name: nophr
-    homepage: https://github.com/sandwich/nophr
+    homepage: https://github.com/sandwichfarm/nophr
     maintainer: Your Name <you@example.com>
     description: Nostr to Gopher/Gemini/Finger gateway
     license: MIT
@@ -901,7 +901,7 @@ Usage Documentation
 Local Development Workflow
 ```bash
 # Clone repository
-git clone https://github.com/sandwich/nophr.git
+git clone https://github.com/sandwichfarm/nophr.git
 cd nophr
 
 # Run tests

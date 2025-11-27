@@ -410,13 +410,27 @@ func (r *Renderer) renderPortalLinks(resolved []*entities.Entity) string {
 	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
 	var lines []string
 
+	refLines := make([]string, 0)
+	refIdx := 1
+
 	for _, entity := range resolved {
 		nip19 := strings.TrimPrefix(entity.OriginalText, "nostr:")
-		lines = append(lines, fmt.Sprintf("* %s (%s)", entity.DisplayName, entity.Type))
+		name := displayNameWithAt(entity)
+
+		markers := make([]string, 0)
 		for _, portal := range portals {
-			lines = append(lines, fmt.Sprintf("=> %s/%s %s", portal, nip19, entity.DisplayName))
+			markers = append(markers, fmt.Sprintf("[%d]", refIdx))
+			refLines = append(refLines, fmt.Sprintf("[%d] => %s/%s %s", refIdx, portal, nip19, name))
+			refIdx++
 		}
+
+		lines = append(lines, fmt.Sprintf("* %s (%s) %s", name, entity.Type, strings.Join(markers, " ")))
 		lines = append(lines, "")
+	}
+
+	if len(refLines) > 0 {
+		lines = append(lines, "References:")
+		lines = append(lines, strings.Join(refLines, "\n"))
 	}
 
 	return strings.Join(lines, "\n")
@@ -597,7 +611,7 @@ func (r *Renderer) portalLinksForEvent(event *nostr.Event) []string {
 		return nil
 	}
 
-	portals := []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
+	portals := portalBases()
 	links := make([]string, 0, len(portals))
 	for _, base := range portals {
 		links = append(links, fmt.Sprintf("%s/%s", base, code))
@@ -630,4 +644,21 @@ func dTagValue(event *nostr.Event) string {
 		}
 	}
 	return ""
+}
+
+func displayNameWithAt(entity *entities.Entity) string {
+	name := entity.DisplayName
+	if name == "" {
+		return name
+	}
+	if entity.Type == "npub" || entity.Type == "nprofile" {
+		if !strings.HasPrefix(name, "@") {
+			return "@" + name
+		}
+	}
+	return name
+}
+
+func portalBases() []string {
+	return []string{"https://njump.me", "https://nostr.at", "https://nostr.eu"}
 }

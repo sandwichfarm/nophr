@@ -143,7 +143,7 @@ Multi-architecture images:
 Go Toolchain Required:
 ```bash
 # Clone repository
-git clone https://github.com/sandwich/nophr.git
+git clone https://github.com/sandwichfarm/nophr.git
 cd nophr
 
 # Build
@@ -203,7 +203,7 @@ Systemd Service File:
 [Unit]
 Description=nophr - Nostr to Gopher/Gemini/Finger Gateway
 After=network.target
-Documentation=https://github.com/sandwich/nophr
+Documentation=https://github.com/sandwichfarm/nophr
 
 [Service]
 Type=simple
@@ -378,7 +378,7 @@ brews:
     tap:
       owner: sandwich
       name: homebrew-nophr
-    homepage: https://github.com/sandwich/nophr
+    homepage: https://github.com/sandwichfarm/nophr
     description: "Nostr to Gopher/Gemini/Finger gateway"
     license: MIT
     install: |
@@ -390,7 +390,7 @@ brews:
 nfpms:
   - id: nophr-packages
     package_name: nophr
-    homepage: https://github.com/sandwich/nophr
+    homepage: https://github.com/sandwichfarm/nophr
     maintainer: Your Name <you@example.com>
     description: Nostr to Gopher/Gemini/Finger gateway
     license: MIT

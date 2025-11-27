@@ -792,7 +792,7 @@ journalctl -u nophr -f
 ### Search issues
 
 Check if issue already reported:
-- GitHub Issues: https://github.com/sandwich/nophr/issues
+- GitHub Issues: https://github.com/sandwichfarm/nophr/issues
 
 ### Report new issue
 
@@ -805,7 +805,7 @@ Include:
 
 ### Community support
 
-- GitHub Discussions: https://github.com/sandwich/nophr/discussions
+- GitHub Discussions: https://github.com/sandwichfarm/nophr/discussions
 - Nostr: Contact operator (check README for contact info)
 
 ---
